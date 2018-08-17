@@ -440,7 +440,11 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>${maven.compiler.version}</version>
                 <extensions>true</extensions>
+
                 <configuration>
+                    <repositoryId>ossrh</repositoryId>
+                    <ignoreLock>true</ignoreLock>
+                    <remoteOBR>https://oss.sonatype.org/content/repositories/snapshots/io/cresco/dashboard</remoteOBR>
                     <instructions>
                         <Bundle-SymbolicName>${project.groupId}.${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>Dashboard Plugin</Bundle-Name>

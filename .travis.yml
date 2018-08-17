@@ -1,7 +1,8 @@
 language: java
 
 after_success:
-- mvn clean package bundle:deploy --settings travis-settings.xml -DskipTests=true -B -DremoteOBR
+- mvn clean package bundle:bundle
+- mvn deploy:deploy-file -Dfile=target/dashboard-1.0-SNAPSHOT.jar -Durl=https://oss.sonatype.org/content/repositories/snapshots -DpomFile=pom.xml --settings travis-settings.xml -DskipTests=true -B
 env:
   global:
   - SONATYPE_USERNAME=crescoedge
