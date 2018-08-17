@@ -1,0 +1,38 @@
+<!DOCTYPE hibernate-configuration PUBLIC
+				"-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+				"http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+
+	<session-factory>
+
+		<!-- H2 Database Properties -->
+		<property name="connection.driver_class">org.h2.Driver</property>
+		<property name="dialect">org.hibernate.dialect.H2Dialect</property>
+		<!-- END OF H2 Database Properties -->
+
+		<!-- JDBC connection pool (use the built-in) -->
+		<!-- <property name="connection.pool_size">100</property> -->
+
+		<property name="hibernate.c3p0.min_size">10</property>
+        <property name="hibernate.c3p0.max_size">20</property>
+        <property name="hibernate.c3p0.acquire_increment">1</property>
+        <property name="hibernate.c3p0.idle_test_period">3000</property>
+        <property name="hibernate.c3p0.max_statements">50</property>
+        <property name="hibernate.c3p0.timeout">1800</property>
+
+		<!-- Disable the second-level cache  -->
+		<property name="cache.provider_class">org.hibernate.cache.internal.NoCachingRegionFactory</property>
+
+		<!-- Echo all executed SQL to stdout -->
+		<property name="show_sql">false</property>
+
+		<!-- Drop and re-create the database schema on startup -->
+		<property name="hbm2ddl.auto">update</property>
+
+		<!-- Names the annotated entity class -->
+		<mapping class="io.cresco.dashboard.models.Alert" />
+		<mapping class="io.cresco.dashboard.models.LoginSession" />
+
+	</session-factory>
+
+</hibernate-configuration>

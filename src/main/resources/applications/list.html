@@ -1,0 +1,239 @@
+{% extends "page.html" %}
+
+{% block title %}Applications List{% endblock %}
+
+{% block pagecss %}
+    <link rel="stylesheet" href="/services/includes/css/datatables.min.css">
+{% endblock %}
+
+{% block pagecontent %}
+                <div id='apps-row' class="row">
+                    <div class="col-xs-12">
+                        <div class="card card-outline-primary">
+                            <div class="card-header bordered">
+                                <div class="header-block">
+                                    <h3 class="cresco-list-title">Applications</h3>
+                                </div>
+                                <div class="header-block pull-right">
+                                    <button type="button" class="btn btn-success" onclick="showAddApp()"><i class="fa fa-plus" aria-hidden="true"></i> Submit CADL</button>
+                                    <a href="/services/applications/build" class="btn btn-success"><i class="fa fa-wrench"></i> Build New Application</a>
+                                </div>
+                            </div>
+                            <div class="card-block">
+                                <table id='apps' class='table table-bordered table-striped' cellspacing="0" width='100%'>
+                                    <thead>
+                                    <tr>
+                                        <td>Name</td>
+                                        <td>Tenant</td>
+                                        <td>Status</td>
+                                        <td></td>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                    <tfoot>
+                                    <tr>
+                                        <td>Name</td>
+                                        <td>Tenant</td>
+                                        <td>Status</td>
+                                        <td></td>
+                                    </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal fade" id="apps-info-modal">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    <span class="sr-only">Close</span>
+                                </button>
+                                <h4 class="modal-title" id="apps-info-modal-title"></h4>
+                            </div>
+                            <div class="modal-body" id="apps-info-modal-body"></div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal fade" id="new-app-info-modal">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    <span class="sr-only">Close</span>
+                                </button>
+                                <h4 class="modal-title">Add New Application</h4>
+                            </div>
+                            <div class="modal-body">
+                                <form id="new-pipeline">
+                                    <label for="new-pipeline-tenant">Tenant ID</label>
+                                    <input type="text" id="new-pipeline-tenant" name="tenant-id" class="form-control"/><br>
+                                    <label for="new-pipeline-code">Pipeline</label>
+                                    <textarea id="new-pipeline-code" name="pipeline" class="form-control"></textarea>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                <button id="new-pipeline-submit" type="button" class="btn btn-success" onclick="submitNewPipeline()">Submit</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+{% endblock %}
+
+{% block pagejs %}
+<script type="text/javascript" src="/services/includes/js/datatables.min.js"></script>
+<script type="text/javascript">
+    var apps = $('#apps');
+    var apps_body = $('#apps tbody');
+    var apps_info_modal = $('#apps-info-modal');
+    var apps_info_modal_title = $('#apps-info-modal-title');
+    var apps_info_modal_body = $('#apps-info-modal-body');
+    var new_app_modal = $('#new-app-info-modal');
+    var apps_datatable = null;
+    $(function() {
+        updateAppList();
+        var timer = 0;
+        var PERIOD_VISIBLE = 5000;
+        var PERIOD_NOT_VISIBLE = 60000;
+        timer = setInterval(updateAppList, (document.hidden) ? PERIOD_NOT_VISIBLE : PERIOD_VISIBLE);
+        if(document.addEventListener) document.addEventListener("visibilitychange", visibilityChanged);
+        function visibilityChanged() {
+            clearTimeout(timer);
+            timer = setInterval(updateAppList, (document.hidden) ? PERIOD_NOT_VISIBLE : PERIOD_VISIBLE);
+        }
+    });
+    function updateAppList() {
+        $.ajax({
+            url: "/services/applications/list"
+        }).complete(function(data) {
+            if (apps_datatable !== null)
+                apps_datatable.destroy();
+            var json = data['responseJSON'];
+            var body = '';
+            $.each(json.pipelines, function(i, v) {
+                body += '<tr>';
+                //body += '<td><a style="cursor: pointer" onclick="info(\'' + v.pipeline_id + '\');">' + v.pipeline_name + '</a></td>';
+                body += '<td><a href="/services/applications/details/' + v.pipeline_id + '">' + v.pipeline_name + '</a></td>';
+                body += '<td>' + v.tenant_id + '</td>';
+                body += '<td>' + v.status_desc + '</td>';
+                body += '<td><center><a href="/services/applications/delete/' + v.pipeline_id + '" class="btn btn-danger"><i class="fa fa-trash" aria-hidden="true"></i></a></center></td>';
+                body += '</tr>';
+            });
+            apps_body.html(body);
+            apps_datatable = apps.DataTable({
+                "columns": [
+                    {}, // Name
+                    {}, // Tenant
+                    {}, // Status
+                    { "orderable": false }  // Delete
+                ]
+            });
+        }).error(function(data) {
+            console.error(data);
+        });
+    }
+    function info(id) {
+        $.ajax({
+            url: "/services/applications/info/" + id
+        }).complete(function(data) {
+            var json = data['responseJSON'];
+            console.log(json);
+            apps_info_modal_title.html("Application: " + id);
+            apps_info_modal_body.html('<pre>' + syntaxHighlight(JSON.stringify(json, undefined, 4)) + '</pre>');
+            apps_info_modal.modal('show');
+        }).error(function(data) {
+            console.error(data);
+        });
+    }
+    function showAddApp() {
+        new_app_modal.modal('show');
+    }
+    function submitNewPipeline() {
+        var tenant = $('#new-pipeline-tenant').val();
+        $('#new-pipeline-tenant').val('');
+        var pipeline = $('#new-pipeline-code').val();
+        $('#new-pipeline-code').val('');
+        var data = {};
+        data.tenant_id = tenant;
+        data.pipeline = pipeline;
+        console.log(data);
+        $.post("/services/applications/add", data, function(result) {
+            console.log(result);
+        });
+        new_app_modal.modal('hide');
+    }
+    function syntaxHighlight(json) {
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+            var cls = 'number';
+            if (/^"/.test(match)) {
+                if (/:$/.test(match)) {
+                    cls = 'key';
+                } else {
+                    cls = 'string';
+                }
+            } else if (/true|false/.test(match)) {
+                cls = 'boolean';
+            } else if (/null/.test(match)) {
+                cls = 'null';
+            }
+            return '<span class="' + cls + '">' + match + '</span>';
+        });
+    }
+    function humanFileSize(bytes, si) {
+        var thresh = si ? 1000 : 1024;
+        if(Math.abs(bytes) < thresh) {
+            return bytes + ' B';
+        }
+        var units = si
+            ? ['kB','MB','GB','TB','PB','EB','ZB','YB']
+            : ['KiB','MiB','GiB','TiB','PiB','EiB','ZiB','YiB'];
+        var u = -1;
+        do {
+            bytes /= thresh;
+            ++u;
+        } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+        return bytes.toFixed(1)+' '+units[u];
+    }
+    function secondsToStr (secs) {
+        // TIP: to find current time in milliseconds, use:
+        // var  current_time_milliseconds = new Date().getTime();
+
+        function numberEnding (number) {
+            return (number > 1) ? 's' : '';
+        }
+
+        var temp = secs; //Math.floor(milliseconds / 1000);
+        var years = Math.floor(temp / 31536000);
+        if (years) {
+            return years + ' year' + numberEnding(years);
+        }
+        //TODO: Months! Maybe weeks?
+        var days = Math.floor((temp %= 31536000) / 86400);
+        if (days) {
+            return days + ' day' + numberEnding(days);
+        }
+        var hours = Math.floor((temp %= 86400) / 3600);
+        if (hours) {
+            return hours + ' hour' + numberEnding(hours);
+        }
+        var minutes = Math.floor((temp %= 3600) / 60);
+        if (minutes) {
+            return minutes + ' minute' + numberEnding(minutes);
+        }
+        var seconds = temp % 60;
+        if (seconds) {
+            return seconds + ' second' + numberEnding(seconds);
+        }
+        return 'less than a second'; //'just now' //or other string you like;
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,427 @@
+{{> header}}
+<!-- Breadcrumb-->
+<ol class="breadcrumb">
+    <li class="breadcrumb-item">Home</li>
+    <li class="breadcrumb-item">Infrastructure</li>
+    <li class="breadcrumb-item active">Agents</li>
+    <!-- Breadcrumb Menu-->
+    <li class="breadcrumb-menu d-md-down-none">
+        <div class="btn-group" role="group" aria-label="Button group">
+
+        </div>
+    </li>
+</ol>
+<div class="container-fluid">
+    <div class="animated fadeIn">
+        <div class="row">
+            <div class="col-xs-4">
+                <select class="form-control" id="regions" name="regions"></select>
+                <label for="regions">Region</label>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12"></div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fa fa-align-justify"></i> Cresco Plugins
+                    </div>
+                    <div class="card-body pb-0">
+                        <div class="row">
+                            <div class="col-lg-12" style="margin-bottom: 10px;">
+                                <table id="agents" class="display table table-striped table-bordered dt-responsive no-wrap" style="width: 100%">
+                                    <thead>
+                                    <tr>
+                                        <td>Agent</td>
+                                        <td>Region</td>
+                                        <td>Location</td>
+                                        <td>Environment</td>
+                                        <td>Platform</td>
+                                        <td>Plugins</td>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                    <tfoot>
+                                    <tr>
+                                        <td>Agent</td>
+                                        <td>Region</td>
+                                        <td>Location</td>
+                                        <td>Environment</td>
+                                        <td>Platform</td>
+                                        <td>Plugins</td>
+                                    </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="agent-info-modal" tabindex="-1" role="dialog" aria-labelledby="addGCModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="agent-info-modal-title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">x</span></button>
+            </div>
+            <div class="modal-body" id="agent-info-modal-body">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var regions = $('#regions');
+    var agents_row = $('#agents-row');
+    var agents = $('#agents');
+    var agents_body = $('#agents tbody');
+    var agent_info_modal = $('#agent-info-modal');
+    var agent_info_modal_title = $('#agent-info-modal-title');
+    var agent_info_modal_body = $('#agent-info-modal-body');
+    const chartColors = {
+        red: 'rgb(255, 99, 132)',
+        orange: 'rgb(255, 159, 64)',
+        yellow: 'rgb(255, 205, 86)',
+        green: 'rgb(75, 192, 86)',
+        blue: 'rgb(54, 162, 235)',
+        purple: 'rgb(153, 102, 255)',
+        grey: 'rgb(201, 203, 207)'
+    };
+    $(function() {
+        $.ajax({
+            url: "/services/regions/list",
+            success: function(json) {
+                var options = '<option value="" selected>All</option>';
+                $.each(json.regions, function (i, v) {
+                    options += '<option value"' + v.name + '">' + v.name + '</option>';
+                });
+                regions.html(options);
+            },
+            error: function(data) {
+                console.error(data);
+            }
+        });
+        regions.change(function() {
+            var region = regions.val();
+            if (region === null)
+                region = "";
+            if (region === 'blank') {
+                agents_row.css('display', 'none');
+                return;
+            }
+            $.ajax({
+                url: "/services/agents/list/" + region,
+                success: function(json) {
+                    var body = '';
+                    $.each(json.agents, function (i, v) {
+                        body += '<tr>';
+                        body += '<td><a href="javascript:void(0);" onclick="resources(\'' + v.region + '\',\'' + v.name + '\');">' + v.name + '</a></td>';
+                        body += '<td>' + v.region + '</td>';
+                        body += '<td>' + v.location + '</td>';
+                        body += '<td>' + v.environment + '</td>';
+                        body += '<td>' + v.platform + '</td>';
+                        body += '<td>' + v.plugins + '</td>';
+                        body += '</tr>';
+                    });
+                    agents_body.html(body);
+                    agents.DataTable({
+                        "buttons": [
+                            "pageLength", "colvis"
+                        ],
+                        "columns": [
+                            {
+                                "responsivePriority": 1
+                            },
+                            {
+                                "responsivePriority": 2
+                            },
+                            {
+                                "responsivePriority": 4
+                            },
+                            {
+                                "responsivePriority": 6,
+                                "visible": false
+                            },
+                            {
+                                "responsivePriority": 5,
+                                "visible": false
+                            },
+                            {
+                                "responsivePriority": 3
+                            }
+                        ],
+                        "destroy": true,
+                        "dom": 'Bfrtip',
+                        "responsive": true
+                    });
+                    agents_row.css('display', 'block');
+                },
+                error: function(data) {
+                    console.error(data);
+                }
+            });
+        });
+        regions.change();
+    });
+    function resources(region, agent) {
+        $.ajax({
+            url: "/services/agents/resources/" + region + "/" + agent,
+            success: function(json) {
+                agent_info_modal_title.html("Resources: <br>" + region + "<br>" + agent);
+                var agentJSON = JSON.parse(json.agentresourceinfo[0].perf);
+                //console.log(agentJSON);
+                var system = {};
+                system.family = agentJSON.os[0]['sys-family'];
+                system.manufacturer = agentJSON.os[0]['sys-manufacturer'];
+                system.os = agentJSON.os[0]['sys-os'];
+                if (agentJSON.cpu[0].is64bit === 'true')
+                    system.architecture = '64-bit';
+                else
+                    system.architecture = '32-bit';
+                system.uptime = secondsToStr(parseInt(agentJSON.os[0]['sys-uptime']));
+                //console.log(system);
+                var cpu = {};
+                cpu.ident = agentJSON.cpu[0]['cpu-ident'];
+                cpu.summary = agentJSON.cpu[0]['cpu-summary'];
+                cpu.cores = {};
+                cpu.cores.physical = parseInt(agentJSON.cpu[0]['cpu-physical-count']);
+                cpu.cores.logical = parseInt(agentJSON.cpu[0]['cpu-logical-count']);
+                cpu.load = {};
+                cpu.load.idle = parseFloat(agentJSON.cpu[0]['cpu-idle-load']);
+                cpu.load.nice = parseFloat(agentJSON.cpu[0]['cpu-nice-load']);
+                cpu.load.user = parseFloat(agentJSON.cpu[0]['cpu-user-load']);
+                cpu.load.system = parseFloat(agentJSON.cpu[0]['cpu-sys-load']);
+                //console.log(cpu);
+                var memory = {};
+                memory.available = parseInt(agentJSON.mem[0]['memory-available']);
+                memory.total = parseInt(agentJSON.mem[0]['memory-total']);
+                //console.log(memory);
+                var fs = [];
+                $.each(agentJSON.fs, function (i, v) {
+                    var tmp_fs = {};
+                    tmp_fs.name = agentJSON.fs[i].name;
+                    tmp_fs.uuid = agentJSON.fs[i].uuid;
+                    tmp_fs.description = agentJSON.fs[i].description;
+                    tmp_fs.total = parseInt(agentJSON.fs[i]['total-space']);
+                    tmp_fs.available = parseInt(agentJSON.fs[i]['available-space']);
+                    fs.push(tmp_fs);
+                });
+                //console.log(fs);
+                var nics = [];
+                $.each(agentJSON.net, function (i, v) {
+                    var nic_info = agentJSON.net[i];
+                    var tmp_nic_object = {};
+                    tmp_nic_object.name = nic_info['interface-name'];
+                    var tmp_ipv4 = nic_info['ipv4-addresses'].toString().replace(/[\[\]\"]/g, "");
+                    tmp_nic_object.ipv4 = tmp_ipv4.split(",");
+                    var tmp_ipv6 = nic_info['ipv6-addresses'].toString().replace(/[\[\]\"]/g, "");
+                    tmp_nic_object.ipv6 = tmp_ipv6.split(",");
+                    tmp_nic_object.mtu = parseInt(nic_info['mtu']);
+                    nics.push(tmp_nic_object);
+                });
+                //console.log(nics);
+                let body = "";
+                body += "<div class='row'>";
+                body += "<div class='col-md-6'>";
+                body += "<div class='callout callout-info'><h3 class='title'>System (up for " + system.uptime + ")</h3>";
+                body += "<dl>";
+                body += `<div class="callout callout-info"><small class="text-muted">Manufaturer</small><br><strong class="h6">${system.manufacturer}</strong></div>`;
+                body += `<div class="callout callout-info"><small class="text-muted">OS</small><br><strong class="h6">${system.family} ${system.os} (${system.architecture})</strong></div>`;
+                body += `<div class="callout callout-info"><small class="text-muted">CPU</small><br><strong class="h6">Type: </strong>${cpu.summary}<br><strong class="h6">Cores: </strong>${cpu.cores.physical} Physical, ${cpu.cores.logical} Logical<br></div>`;
+                let memoryTotalFormatted = humanFileSize(memory.total, false);
+                body += `<div class="callout callout-info"><small class="text-muted">Memory</small><br><strong class="h6">Total:</strong> ${memoryTotalFormatted}</div>`;
+                body += "<div class='callout callout-info'><small class='text-muted'>Networking</small>";
+                $.each(nics, function (i, nic) {
+                    body += "<div class='callout callout-info'>";
+                    body += `<strong class="h6"><u>${nic.name}</u></strong><br>`;
+                    body += `<strong class="h6">MTU:</strong> ${nic.mtu}<br>`;
+                    body += `<strong class="h6">IPv4:</strong> ${nic.ipv4}`;
+                    if (nic.ipv6)
+                        body += `<br><strong class="h6">IPv6:</strong> ${nic.ipv6}`;
+                    body += "</div>";
+                });
+                body += "</dl>";
+                body += "</div>";
+                body += "</div>";
+                body += "<div class='col-md-6'>";
+                body += "<div class='col-sm-12'><canvas id='agent-info-modal-body-cpu' height=350></canvas></div>";
+                body += "<div class='col-sm-12'><canvas id='agent-info-modal-body-memory' height=350></canvas></div>";
+                body += "</div>";
+                body += "</div>";
+                agent_info_modal_body.html(body);
+                agent_info_modal.on('shown.bs.modal', function (e) {
+                    const cpu_config = {
+                        type: 'doughnut',
+                        data: {
+                            datasets: [{
+                                data: [
+                                    cpu.load.idle,
+                                    cpu.load.nice,
+                                    cpu.load.user,
+                                    cpu.load.system
+                                ],
+                                backgroundColor: [
+                                    chartColors.green,
+                                    chartColors.red,
+                                    chartColors.orange,
+                                    chartColors.blue
+                                ],
+                                label: 'Dataset 1'
+                            }],
+                            labels: [
+                                'Idle',
+                                'Nice',
+                                'User',
+                                'System'
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                fontSize: 24,
+                                text: 'Agent CPU Usage'
+                            },
+                            animation: {
+                                animateScale: true,
+                                animateRotate: true
+                            },
+                            tooltips: {
+                                callbacks: {
+                                    label: function(tooltipItem, data) {
+                                        return `${data.datasets[0].data[tooltipItem.index]}%` ;
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    new Chart(document.getElementById('agent-info-modal-body-cpu').getContext('2d'), cpu_config);
+                    const mem_config = {
+                        type: 'doughnut',
+                        data: {
+                            datasets: [{
+                                data: [
+                                    memory.available,
+                                    (memory.total - memory.available)
+                                ],
+                                backgroundColor: [
+                                    chartColors.green,
+                                    chartColors.red
+                                ],
+                                label: 'Dataset 1'
+                            }],
+                            labels: [
+                                'Free',
+                                'Used'
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                fontSize: 24,
+                                text: 'Agent Memory Usage'
+                            },
+                            animation: {
+                                animateScale: true,
+                                animateRotate: true
+                            },
+                            tooltips: {
+                                callbacks: {
+                                    label: function(tooltipItem, data) {
+                                        return humanFileSize(data.datasets[0].data[tooltipItem.index], false);
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    new Chart(document.getElementById('agent-info-modal-body-memory').getContext('2d'), mem_config);
+                });
+                agent_info_modal.modal('show');
+            },
+            error: function(data) {
+                console.error(data);
+            }
+        });
+    }
+    function syntaxHighlight(json) {
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+            var cls = 'number';
+            if (/^"/.test(match)) {
+                if (/:$/.test(match)) {
+                    cls = 'key';
+                } else {
+                    cls = 'string';
+                }
+            } else if (/true|false/.test(match)) {
+                cls = 'boolean';
+            } else if (/null/.test(match)) {
+                cls = 'null';
+            }
+            return '<span class="' + cls + '">' + match + '</span>';
+        });
+    }
+    function humanFileSize(bytes, si) {
+        var thresh = si ? 1000 : 1024;
+        if(Math.abs(bytes) < thresh) {
+            return bytes + ' B';
+        }
+        var units = si
+                ? ['kB','MB','GB','TB','PB','EB','ZB','YB']
+                : ['KiB','MiB','GiB','TiB','PiB','EiB','ZiB','YiB'];
+        var u = -1;
+        do {
+            bytes /= thresh;
+            ++u;
+        } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+        return bytes.toFixed(1)+' '+units[u];
+    }
+    function secondsToStr (secs) {
+        // TIP: to find current time in milliseconds, use:
+        // var  current_time_milliseconds = new Date().getTime();
+
+        function numberEnding (number) {
+            return (number > 1) ? 's' : '';
+        }
+
+        var temp = secs; //Math.floor(milliseconds / 1000);
+        var years = Math.floor(temp / 31536000);
+        if (years) {
+            return years + ' year' + numberEnding(years);
+        }
+        //TODO: Months! Maybe weeks?
+        var days = Math.floor((temp %= 31536000) / 86400);
+        if (days) {
+            return days + ' day' + numberEnding(days);
+        }
+        var hours = Math.floor((temp %= 86400) / 3600);
+        if (hours) {
+            return hours + ' hour' + numberEnding(hours);
+        }
+        var minutes = Math.floor((temp %= 3600) / 60);
+        if (minutes) {
+            return minutes + ' minute' + numberEnding(minutes);
+        }
+        var seconds = temp % 60;
+        if (seconds) {
+            return seconds + ' second' + numberEnding(seconds);
+        }
+        return 'less than a second'; //'just now' //or other string you like;
+    }
+</script>
+{{> footer}}

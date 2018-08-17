@@ -1,0 +1,11 @@
+.menu-segment {
+    fill: #4679bd;
+}
+
+.menu-segment:hover {
+    fill: #5689cd;
+}
+
+.menu-icon {
+    pointer-events: none;
+}

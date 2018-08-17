@@ -1,0 +1,16 @@
+{% extends "page.html" %}
+
+{% block title %}Index{% endblock %}
+
+{% block pagecss %}
+    <script type="text/javascript">
+        window.location.href = "/services/applications";
+    </script>
+{% endblock %}
+
+{% block pagecontent %}
+                <h1>Index Page for {{ user }}</h1>
+{% endblock %}
+
+{% block pagejs %}
+{% endblock %}

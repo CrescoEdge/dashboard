@@ -1,0 +1,58 @@
+{% extends "page.html" %}
+
+{% block title %}Plugins{% endblock %}
+
+{% block pagecontent %}
+<section class="section" id="pluginRows">
+</section>
+{% endblock %}
+
+{% block pagejs %}
+<script type="text/javascript">
+    $(function () {
+        $.ajax({
+            url: "/services/plugins/list"
+        }).done(function(data) {
+            var pluginsHTML = '';
+            $.each(data, function(i, v) {
+                pluginsHTML += '<div class="row">';
+                pluginsHTML += '<div class="col-xl-12">';
+                if (v.config.pluginname === 'cresco-agent-controller-plugin')
+                    pluginsHTML += '<div class="card card-info">';
+                else if (v.status)
+                    pluginsHTML += '<div class="card card-success">';
+                else
+                    pluginsHTML += '<div class="card card-danger">';
+                pluginsHTML += '<div class="card-header">';
+                pluginsHTML += '<div class="header-block">';
+                if (v.config.pluginname === 'cresco-agent-controller-plugin')
+                    pluginsHTML += '<p class="title"><span style="color:#1c86f1;">' + v.id + ':</span>&nbsp;<span style="color:#555;">' + v.config.pluginname + '</span></p>';
+                else if (v.status)
+                    pluginsHTML += '<p class="title"><span style="color:#b8ff6b;">' + v.id + ':</span>&nbsp;<span style="color:#eee;">' + v.config.pluginname + '</span></p>';
+                else
+                    pluginsHTML += '<p class="title"><span style="color:#ffaaaa;">' + v.id + ':</span>&nbsp;<span style="color:#eee;">' + v.config.pluginname + '</span></p>';
+                pluginsHTML += '</div>';
+                pluginsHTML += '</div>';
+                pluginsHTML += '<div class="card-block">';
+                pluginsHTML += '<p>'
+                for (var key in v.config) {
+                    if (key === 'pluginname')
+                        continue;
+                    if (v.config.hasOwnProperty(key)) {
+                        pluginsHTML += '<b>' + key + '</b>: ' + v.config[key] + '<br>';
+                    }
+                }
+                pluginsHTML += '</p>';
+                pluginsHTML += '</div>';
+                //pluginsHTML += '<div class="card-footer"> Card Footer </div>';
+                pluginsHTML += '</div>';
+                pluginsHTML += '</div>';
+                pluginsHTML += '</div>';
+            });
+            $('#pluginRows').html(pluginsHTML);
+        }).error(function(data) {
+            console.error(data);
+        })
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,266 @@
+{{> header}}
+<!-- Breadcrumb-->
+<ol class="breadcrumb">
+    <li class="breadcrumb-item">Home</li>
+    <li class="breadcrumb-item"><a href="/plugins">Plugins</a></li>
+    <li class="breadcrumb-item active">{{ region }}-{{ agent }}-{{ plugin }}</li>
+    <!-- Breadcrumb Menu-->
+    <li class="breadcrumb-menu d-md-down-none">
+        <div class="btn-group" role="group" aria-label="Button group">
+
+        </div>
+    </li>
+</ol>
+<div id="plugin-page-container" class="container-fluid">
+    <div class="animated fadeIn">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card">
+                    <div class="card-header">
+                        <span style="font-size: 24px;"><i class="fa fa-align-justify"></i> Plugin Details</span>
+                        <div class="pull-right">
+                        </div>
+                    </div>
+                    <div class="card-body pb-0">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="callout callout-info">
+                                    <dl>
+                                        <dt>Region</dt><dd>{{ region }}</dd>
+                                        <dt>Agent</dt><dd>{{ agent }}</dd>
+                                        <dt>Plugin</dt><dd>{{ plugin }}</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12">
+                <div class="card">
+                    <div class="card-header">
+                        <span style="font-size: 24px;"><i class="fa fa-align-justify"></i> Plugin Configuration</span>
+                    </div>
+                    <div class="card-body pb-0">
+                        <div class="row">
+                            <div id="plugin-body" class="col-sm-12"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12">
+                <div class="card">
+                    <div class="card-header">
+                        <span style="font-size: 24px;"><i class="fa fa-align-justify"></i> Plugin Metrics</span>
+                    </div>
+                    <div class="card-body pb-0">
+                        <div class="row">
+                            <div id="plugin-metrics" class="col-sm-12">
+                                <!--<div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="card">
+                                            <div class="card-header">controllerinfo_inode</div>
+                                            <div class="card-body pb-0">
+                                                <div class="row">
+                                                    <div class="col-sm-12">
+                                                        <div class="card">
+                                                            <div class="card-header">controller</div>
+                                                            <div class="card-body pb-0">
+                                                                <div class="row"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>-->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    let region = `{{{region}}}`;
+    let agent = `{{{agent}}}`;
+    let plugin = `{{{plugin}}}`;
+    let plugin_body = $('#plugin-body');
+    $(function() {
+        getPlugin();
+        let timer = 0;
+        let PERIOD_VISIBLE = 5000;
+        let PERIOD_NOT_VISIBLE = 60000;
+        timer = setInterval(getPlugin, (document.hidden) ? PERIOD_NOT_VISIBLE : PERIOD_VISIBLE);
+        if(document.addEventListener) document.addEventListener("visibilitychange", visibilityChanged);
+        function visibilityChanged() {
+            clearTimeout(timer);
+            timer = setInterval(getPlugin, (document.hidden) ? PERIOD_NOT_VISIBLE : PERIOD_VISIBLE);
+        }
+    });
+    function addMetricGroup(name) {
+        let html = `<div class="row">
+                        <div class="col-sm-12">
+                            <div class="card">
+                                <div class="card-header">${name}</div>
+                                <div id="${name}-body" class="card-body pb-0"></div>
+                            </div>
+                        </div>
+                    </div>`;
+        $('#plugin-metrics').append(html);
+    }
+    function addMetricSubGroup(group, name) {
+        let html = `<div class="row">
+                        <div class="col-sm-12">
+                            <div class="card">
+                                <div class="card-header">${name}</div>
+                                <div class="card-body pb-0">
+                                    <div id="${group}-${name}-body" class="row">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+        $(`#${group}-body`).append(html);
+    }
+    function addMetric(group, subgroup, metric, donut = false) {
+        let fixed_name = metric.name.replace(/\./g, '-');
+        let container = `<div class="col-sm-3">
+                            <div class="card">
+                                <div class="card-header" style="text-align: center;">${metric.name}</div>
+                                <div id="${group}-${subgroup}-${fixed_name}-body" class="card-body pb-0">
+                            </div>
+                         </div>`;
+        $(`#${group}-${subgroup}-body`).append(container);
+        if (metric.class === "COUNTER") {
+            $(`#${group}-${subgroup}-${fixed_name}-body`).css("height", "206px");
+            $(`#${group}-${subgroup}-${fixed_name}-body`).css("text-align", "center");
+            let html = `<div class="callout callout-info"><h3>${metric.count}</h3></div>`;
+            $(`#${group}-${subgroup}-${fixed_name}-body`).html(html);
+        }
+        if (metric.class === "GAUGE") {
+            $(`#${group}-${subgroup}-${fixed_name}-body`).css("padding-left", "0");
+            $(`#${group}-${subgroup}-${fixed_name}-body`).css("padding-right", "0");
+            let html = `<div class="col-sm-12 preview-textfield" id="${group}-${subgroup}-${fixed_name}-body-text" style="text-align: center; font-size: 24px; font-weight: bold;"></div>
+                        <div class="col-sm-12" style="padding: 0;">
+                            <canvas class="metric-gauge" id="${group}-${subgroup}-${fixed_name}-body-canvas"></canvas>
+                        </div>`;
+            $(`#${group}-${subgroup}-${fixed_name}-body`).html(html);
+            if (donut) {
+                let opts = {
+                    angle: 0.35, // The span of the gauge arc
+                    lineWidth: 0.1, // The line thickness
+                    radiusScale: 1, // Relative radius
+                    limitMax: false,     // If false, max value increases automatically if value > maxValue
+                    limitMin: false,     // If true, the min value of the gauge will be fixed
+                    colorStart: '#0148a0',   // Colors
+                    colorStop: '#C0C0DB',    // just experiment with them
+                    strokeColor: '#EEEEEE',  // to see which ones work best for you
+                    generateGradient: true,
+                    highDpiSupport: true,     // High resolution support
+                };
+                let target = document.getElementById(`${group}-${subgroup}-${fixed_name}-body-canvas`); // your canvas element
+                let gauge = new Donut(target).setOptions(opts); // create sexy gauge!
+                gauge.animationSpeed = 0; // set animation speed (32 is default value)
+                gauge.setTextField(document.getElementById(`${group}-${subgroup}-${fixed_name}-body-text`));
+                gauge.maxValue = 100; // set max gauge value
+                if (metric.value > 100)
+                    gauge.maxValue = metric.value;
+                gauge.setMinValue(0);  // set min value
+                gauge.set(metric.value); // set actual value
+            } else {
+                let opts = {
+                    angle: 0.15, /// The span of the gauge arc
+                    lineWidth: 0.44, // The line thickness
+                    pointer: {
+                        length: 0.5, // Relative to gauge radius
+                        strokeWidth: 0.035 // The thickness
+                    },
+                    colorStart: '#6FADCF',   // Colors
+                    colorStop: '#8FC0DA',    // just experiment with them
+                    strokeColor: '#E0E0E0',   // to see which ones work best for you
+                    highDpiSupport: true,
+                };
+                let target = document.getElementById(`${group}-${subgroup}-${fixed_name}-body-canvas`); // your canvas element
+                let gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
+                gauge.animationSpeed = 10; // set animation speed (32 is default value)
+                gauge.setTextField(document.getElementById(`${group}-${subgroup}-${fixed_name}-body-text`));
+                gauge.maxValue = 100; // set max gauge value
+                gauge.setMinValue(0);  // set min value
+                gauge.set(metric.value); // set actual value
+            }
+        }
+        if (metric.class === "HASHMAP") {
+
+        }
+        if (metric.class === "TIMER") {
+            $(`#${group}-${subgroup}-${fixed_name}-body`).css("height", "206px");
+            $(`#${group}-${subgroup}-${fixed_name}-body`).css("text-align", "center");
+            let html = `<div class="callout callout-info"><h6 class="text-muted" style="width: 100%;">avg | max</h6><h3>${parseFloat(metric.mean).toFixed(2)} | ${parseFloat(metric.max).toFixed(2)}</h3></div>`;
+            $(`#${group}-${subgroup}-${fixed_name}-body`).html(html);
+        }
+        if (metric.class === "DISTRIBUTION_SUMMARY") {
+                    $(`#${group}-${subgroup}-${fixed_name}-body`).css("height", "206px");
+                    $(`#${group}-${subgroup}-${fixed_name}-body`).css("text-align", "center");
+                    let html = `<div class="callout callout-info"><h6 class="text-muted" style="width: 100%;">avg | max</h6><h3>${parseFloat(metric.mean).toFixed(2)} | ${parseFloat(metric.max).toFixed(2)}</h3></div>`;
+                    $(`#${group}-${subgroup}-${fixed_name}-body`).html(html);
+        }
+    }
+    function getPlugin() {
+        $.ajax({
+            url: "/plugins/info/" + region + "/" + agent + "/" + plugin,
+            success: function(json) {
+                let formatted = syntaxHighlight(JSON.stringify(json, undefined, 4));
+                plugin_body.html(`<pre>${formatted}</pre>`);
+            },
+            error: function(data) {
+                console.error(data);
+            }
+        });
+        $.ajax({
+            url: "/plugins/kpi/" + region + "/" + agent + "/" + plugin,
+            success: function(json) {
+                $(`#plugin-metrics`).html('');
+                $.each(json, function(group_i, group_json) {
+                    let group_name = group_json.name;
+                    let group_metrics = JSON.parse(group_json.metrics);
+                    addMetricGroup(group_name);
+                    for (let subgroup_name in group_metrics) {
+                        if (group_metrics.hasOwnProperty(subgroup_name)) {
+                            let subgroup_metrics = group_metrics[subgroup_name];
+                            addMetricSubGroup(group_name, subgroup_name);
+                            $.each(subgroup_metrics, function(metric_i, metric_json) {
+                                addMetric(group_name, subgroup_name, metric_json);
+                            });
+                        }
+                    }
+                });
+                $(`#plugin-page-container`).css('min-height', $('#plugin-page-container').height());
+            },
+            error: function(data) {
+                console.error(data);
+            }
+        });
+    }
+    function syntaxHighlight(json) {
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+            let cls = 'number';
+            if (/^"/.test(match)) {
+                if (/:$/.test(match)) {
+                    cls = 'key';
+                } else {
+                    cls = 'string';
+                }
+            } else if (/true|false/.test(match)) {
+                cls = 'boolean';
+            } else if (/null/.test(match)) {
+                cls = 'null';
+            }
+            return '<span class="' + cls + '">' + match + '</span>';
+        });
+    }
+</script>
+{{> footer}}

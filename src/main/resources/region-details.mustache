@@ -1,0 +1,223 @@
+{{> header}}
+<!-- Breadcrumb-->
+<ol class="breadcrumb">
+    <li class="breadcrumb-item">Home</li>
+    <li class="breadcrumb-item"><a href="/services/regions">Regions</a></li>
+    <li class="breadcrumb-item active">{{ region }}</li>
+    <!-- Breadcrumb Menu-->
+    <li class="breadcrumb-menu d-md-down-none">
+        <div class="btn-group" role="group" aria-label="Button group">
+
+        </div>
+    </li>
+</ol>
+<div class="container-fluid">
+    <div class="animated fadeIn">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card">
+                    <div class="card-header">
+                        <span style="font-size: 24px;"><i class="fa fa-align-justify"></i> Region Details</span>
+                        <div class="pull-right">
+                        </div>
+                    </div>
+                    <div class="card-body pb-0">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="callout callout-info">
+                                    <dl>
+                                        <dt>Region</dt><dd>{{ region }}</dd>
+                                    </dl>
+                                </div>
+                                <div id="region-details"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12">
+                <div class="card">
+                    <div class="card-header">
+                        <span style="font-size: 24px;"><i class="fa fa-align-justify"></i> Region Status</span>
+                    </div>
+                    <div class="card-body pb-0">
+                        <div class="row">
+                            <div id="region-status" class="col-sm-12"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    let region = `{{{region}}}`;
+    const chartColors = {
+        red: 'rgb(255, 99, 132)',
+        orange: 'rgb(255, 159, 64)',
+        yellow: 'rgb(255, 205, 86)',
+        green: 'rgb(75, 192, 86)',
+        blue: 'rgb(54, 162, 235)',
+        purple: 'rgb(153, 102, 255)',
+        grey: 'rgb(201, 203, 207)'
+    };
+    $(function() {
+        resources(region);
+    });
+    function resources(region) {
+        $.ajax({
+            url: "/services/regions/resources/" + region,
+            success: function (json) {
+                const disk_avail = parseInt(json.regionresourceinfo[0].disk_available);
+                const disk_total = parseInt(json.regionresourceinfo[0].disk_total);
+                const disk_used = disk_total - disk_avail;
+                const mem_avail = parseInt(json.regionresourceinfo[0].mem_available);
+                const mem_total = parseInt(json.regionresourceinfo[0].mem_total);
+                const mem_used = mem_total - mem_avail;
+                let body = "";
+                body += "<div class='row'>";
+                body += "<div class='col-sm-12 col-md-6'><canvas id='region-details-disk-canvas' height=350></canvas></div>";
+                body += "<div class='col-sm-12 col-md-6'><canvas id='region-details-memory-canvas' height=350></canvas></div>";
+                body += "</div>";
+                $('#region-status').html(body);
+                const disk_config = {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [
+                                disk_avail,
+                                disk_used
+                            ],
+                            backgroundColor: [
+                                chartColors.green,
+                                chartColors.red
+                            ],
+                            label: 'Dataset 1'
+                        }],
+                        labels: [
+                            'Disk Free',
+                            'Disk Used'
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            fontSize: 24,
+                            text: 'Region Disk Usage'
+                        },
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true
+                        },
+                        tooltips: {
+                            callbacks: {
+                                label: function(tooltipItem, data) {
+                                    return humanFileSize(data.datasets[0].data[tooltipItem.index], false);
+                                }
+                            }
+                        }
+                    }
+                };
+                new Chart(document.getElementById('region-details-disk-canvas').getContext('2d'), disk_config);
+                const memory_config = {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [
+                                mem_avail,
+                                mem_used
+                            ],
+                            backgroundColor: [
+                                chartColors.green,
+                                chartColors.red
+                            ],
+                            label: 'Dataset 1'
+                        }],
+                        labels: [
+                            'Memory Free',
+                            'Memory Used'
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            fontSize: 24,
+                            text: 'Region Memory Usage'
+                        },
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true
+                        },
+                        tooltips: {
+                            callbacks: {
+                                label: function(tooltipItem, data) {
+                                    return humanFileSize(data.datasets[0].data[tooltipItem.index], false);
+                                }
+                            }
+                        }
+                    }
+                };
+                new Chart(document.getElementById('region-details-memory-canvas').getContext('2d'), memory_config);
+            },
+            error: function (data) {
+                console.error(data);
+            }
+        });
+    }
+    function humanFileSize(bytes, si) {
+        let thresh = si ? 1000 : 1024;
+        if(Math.abs(bytes) < thresh) {
+            return bytes + ' B';
+        }
+        let units = si
+                ? ['kB','MB','GB','TB','PB','EB','ZB','YB']
+                : ['KiB','MiB','GiB','TiB','PiB','EiB','ZiB','YiB'];
+        let u = -1;
+        do {
+            bytes /= thresh;
+            ++u;
+        } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+        return bytes.toFixed(1)+' '+units[u];
+    }
+    function secondsToStr (secs) {
+        // TIP: to find current time in milliseconds, use:
+        // var  current_time_milliseconds = new Date().getTime();
+
+        function numberEnding (number) {
+            return (number > 1) ? 's' : '';
+        }
+
+        let temp = secs; //Math.floor(milliseconds / 1000);
+        let years = Math.floor(temp / 31536000);
+        if (years) {
+            return years + ' year' + numberEnding(years);
+        }
+        //TODO: Months! Maybe weeks?
+        let days = Math.floor((temp %= 31536000) / 86400);
+        if (days) {
+            return days + ' day' + numberEnding(days);
+        }
+        let hours = Math.floor((temp %= 86400) / 3600);
+        if (hours) {
+            return hours + ' hour' + numberEnding(hours);
+        }
+        let minutes = Math.floor((temp %= 3600) / 60);
+        if (minutes) {
+            return minutes + ' minute' + numberEnding(minutes);
+        }
+        let seconds = temp % 60;
+        if (seconds) {
+            return seconds + ' second' + numberEnding(seconds);
+        }
+        return 'less than a second'; //'just now' //or other string you like;
+    }
+</script>
+{{> footer}}

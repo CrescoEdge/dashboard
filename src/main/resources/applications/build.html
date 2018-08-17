@@ -1,0 +1,482 @@
+{% extends "page.html" %}
+
+{% block title %}Build New Application{% endblock %}
+
+{% block pagecss %}
+<link rel="stylesheet" href="/services/includes/css/force.css">
+<link rel="stylesheet" href="/services/includes/css/context-menu.css">
+<link rel="stylesheet" href="/services/includes/css/menu.css">
+{% endblock %}
+
+{% block pagecontent %}
+                <div id='app-row' class="row" style="position: absolute;left: 300px;right: 70px;bottom: 70px;top: 110px;">
+                    <div class="card card-outline-primary" style="height: 100%;margin: 0;padding: 0;">
+                        <div class="card-header bordered">
+                            <div class="header-block">
+                                <h2 class="cresco-list-title">Application Builder</h2>
+                            </div>
+                            <div class="header-block pull-right">
+                                <button type="button" class="btn btn-success" onclick="showAddPlugin()"><i class="fa fa-upload" aria-hidden="true"></i> Upload Plugin</button>
+                                <button type="button" class="btn btn-warning" onclick="showFAQ()"><i class="fa fa-question" aria-hidden="true"></i> Help</button>
+                            </div>
+                        </div>
+                        <div id="workspace" class="card-block" style="position: absolute; top: 55px; left: 0px; bottom: 0px; width: 100%; padding: 0;"></div>
+                    </div>
+                </div>
+                <div class="modal fade" id="faq-modal">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    <span class="sr-only">Close</span>
+                                </button>
+                                <h4 class="modal-title" id="faq-modal-title">Help</h4>
+                            </div>
+                            <div class="modal-body" id="faq-modal-body">
+                                <div class="row">
+                                    <div class="col-xl-12">
+                                        <div class="card card-default">
+                                            <div class="card-header">
+                                                <div class="header-block">
+                                                    <p class="title"> Adding Plugins</p>
+                                                </div>
+                                            </div>
+                                            <div class="card-block">
+                                                <p>To add a plugin to your application, right-click inside the application builder area and select <b>Add New Plugin</b></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xl-12">
+                                        <div class="card card-default">
+                                            <div class="card-header">
+                                                <div class="header-block">
+                                                    <p class="title"> Submitting Your Application</p>
+                                                </div>
+                                            </div>
+                                            <div class="card-block">
+                                                <p>To submit your application, all plugins must be properly configured. This is indicated by a green color in the application builder area. To configure a plugin, simply click on it, then on the <i class="fa fa-wrench"></i> button and fill in the required information. Once all plugins are properly configured, right-click and select <b>Preview CADL</b>. After reviewing the generated <b>Cresco Application Description Language</b> (CADL) file, you may either submit directly from the pop-up, or copy the CADL and submit from the <a href="/services/applications">Applications</a> page.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="hideFAQ();">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal fade" id="edit-plugin-modal">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    <span class="sr-only">Close</span>
+                                </button>
+                                <h4 class="modal-title" id="edit-plugin-modal-title"></h4>
+                            </div>
+                            <div class="modal-body" id="edit-plugin-modal-body"></div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="cancelUpdatePlugin();">Close</button>
+                                <button type="button" class="btn btn-success" onclick="updatePlugin();">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal fade" id="submit-application-modal">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    <span class="sr-only">Close</span>
+                                </button>
+                                <h4 class="modal-title" id="submit-application-modal-title">Previewing Application Descriptor</h4>
+                            </div>
+                            <div class="modal-body" id="submit-application-modal-body"></div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-success" onclick="submitCADL();">Submit Application</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal fade" id="upload-plugin-modal">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    <span class="sr-only">Close</span>
+                                </button>
+                                <h4 class="modal-title" id="upload-plugin-modal-title">Upload New Plugin</h4>
+                            </div>
+                            <div class="modal-body" id="upload-plugin-modal-body">
+                                <form id="upload-plugin-modal-form" enctype="multipart/form-data" method="post" name="upload-plugin-modal-form">
+                                    <!--<div class="form-group row">
+                                        <label for="upload-plugin-modal-pluginname" class="col-sm-2 form-control-label">Pluginname</label>
+                                        <div class="col-sm-10">
+                                            <input type="text" class="form-control" id="upload-plugin-modal-pluginname" name="pluginname" placeholder="Pluginname">
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="upload-plugin-modal-jarfile" class="col-sm-2 form-control-label">Jarfile</label>
+                                        <div class="col-sm-10">
+                                            <input type="text" class="form-control" id="upload-plugin-modal-jarfile" name="jarfile"  placeholder="Jarfile">
+                                        </div>
+                                    </div>-->
+                                    <div class="form-group row">
+                                        <label for="upload-plugin-modal-file" class="col-sm-2 form-control-label">File</label>
+                                        <div class="col-sm-10">
+                                            <input type="file" accept=".jar" class="form-control" id="upload-plugin-modal-file" name="file" >
+                                        </div>
+                                    </div>
+                                </form>
+                                <div class="row" id="upload-plugin-modal-waiting" style="width: 100%;display: none;">
+                                    <div class="col-sm-12">
+                                        <center><span style="font-size: 24px;">Please stand by while your plugin uploads...</span></center>
+                                    </div>
+                                    <div class="col-sm-12">
+                                        &nbsp;
+                                    </div>
+                                    <div class="col-sm-12">
+                                        <center><i class="fa fa-spinner fa-spin" style="font-size:48px"></i></center>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                <button id="upload-plugin-modal-submit-btn" type="button" class="btn btn-success" onclick="uploadPlugin();">Upload Plugin</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+{% endblock %}
+
+{% block pagejs %}
+    <script type="text/javascript" src="/services/includes/js/d3.v3.min.js"></script>
+    <script type="text/javascript" src="/services/includes/js/context-menu.js"></script>
+    <script type="text/javascript" src="/services/includes/js/menu.js"></script>
+    <script type="text/javascript" src="/services/includes/js/force.js"></script>
+    <script type="text/javascript">
+        var pluginData = {};
+        var regionData = {};
+        var agentData = {};
+
+        $(function() {
+            setInterval(updateRepoData(), 5000);
+            setInterval(updateRegionData(), 5000);
+            setInterval(updateAgentData(), 5000);
+        });
+
+        function updateRepoData() {
+            $.getJSON('/services/plugins/listrepo', function(data) {
+                pluginData = data;
+            });
+        }
+
+        function updateRegionData() {
+            $.getJSON('/services/regions/list', function(data) {
+                regionData = data;
+            });
+        }
+
+        function updateAgentData() {
+            $.getJSON('/services/agents/list', function(data) {
+                agentData = data;
+            });
+        }
+
+        function generateTooltip(d) {
+            var tooltip_html = "<div id='node-tooltip-title'>" + d.title + "</div>";
+            for (var param in d.params) {
+                tooltip_html += "<b>" + param + "</b>: " + d.params[param] + "<br>";
+            }
+            return tooltip_html;
+        }
+
+        function editplugin(d) {
+            editting_plugin = true;
+            var node = nodes[d.data.node.index];
+            $('#edit-plugin-modal-title').html("Editting " + node.title);
+            var modalBody = $('#edit-plugin-modal-body');
+            modalBody.append("<input type='hidden' id='edit-plugin-index' value='" + node.index + "' /><br>");
+            var pluginList = "<select class='form-control' id='edit-plugin-selected-plugin'><option value='-1'>-- Select Plugin --</option>";
+            $.each(pluginData.plugins, function(i, v) {
+                pluginList += "<option value='" + i + "'";
+                if (v.pluginname == node.params.pluginname) {
+                    pluginList += " selected ";
+                }
+                pluginList += ">" + v.pluginname + "</option>";
+            });
+            pluginList += "</select><br>";
+            modalBody.append(pluginList);
+            for (var param in node.params) {
+                if (!node.params.hasOwnProperty(param)) continue;
+                var paramHTML = "<div class='form-group row'>";
+                if (param === "pluginname" || param === "jarfile" || param === "version" || param === "md5") {
+                    paramHTML += "<div class='col-sm-3'><input class='form-control' disabled name='edit-plugin-param-input-keys[]' placeholder='Parameter Key' value='" + param + "' /></div>";
+                    paramHTML += "<div class='col-sm-9'><input id='edit-plugin-" + param + "' class='form-control' disabled name='edit-plugin-param-input-values[]' placeholder='Parameter Value' value='" + node.params[param] + "'/></div>";
+                } else if (param === "location_region") {
+                    paramHTML += "<div class='col-sm-3'><input class='form-control' disabled name='edit-plugin-param-select-keys[]' placeholder='Parameter Key' value='" + param + "' /></div>";
+                    paramHTML += "<div class='col-sm-9'><select id='edit-plugin-" + param + "' class='form-control' name='edit-plugin-param-select-values[]'>";
+                    $.each(regionData.regions, function(i, v) {
+                        paramHTML += "<option value='" + v.name + "'";
+                        if (node.params.location_region === v.name) { paramHTML += " selected "; }
+                        paramHTML += ">" + v.name + "</option>";
+                    });
+                    paramHTML += "</div>";
+                } else if (param === "location_agent") {
+                    paramHTML += "<div class='col-sm-3'><input class='form-control' disabled name='edit-plugin-param-select-keys[]' placeholder='Parameter Key' value='" + param + "' /></div>";
+                    paramHTML += "<div class='col-sm-9'><select id='edit-plugin-" + param + "' class='form-control' name='edit-plugin-param-select-values[]'>";
+                    $.each(agentData.agents, function(i, v) {
+                        paramHTML += "<option value='" + v.name + "'";
+                        if (node.params.location_agent === v.name) { paramHTML += " selected "; }
+                        paramHTML += ">" + v.name + "</option>";
+                    });
+                    paramHTML += "</div>";
+                } else {
+                    paramHTML += "<div class='col-sm-3'><input class='form-control' name='edit-plugin-param-input-keys[]' placeholder='Parameter Key' value='" + param + "' /></div>";
+                    paramHTML += "<div class='col-sm-8'><input class='form-control' name='edit-plugin-param-input-values[]' placeholder='Parameter Value' value='" + node.params[param] + "'/></div>";
+                    paramHTML += "<button type='button' class='btn btn-danger' onclick='$(this).closest(\"div\").remove();'><i class='fa fa-trash'></i></button>";
+                }
+                paramHTML += "</div>";
+                modalBody.append(paramHTML);
+            }
+            modalBody.append("<button id='addParamBtn' type='button' class='btn btn-primary' onclick='addParamField();'><i class='fa fa-plus-square'></i> Add Parameter</button>");
+            $('#edit-plugin-selected-plugin').change(function() {
+                var pluginname = $('#edit-plugin-pluginname');
+                pluginname.val('');
+                var jarfile = $('#edit-plugin-jarfile');
+                jarfile.val('');
+                var version = $('#edit-plugin-version');
+                version.val('');
+                var md5hash = $('#edit-plugin-md5');
+                md5hash.val('');
+                var pluginID = $('#edit-plugin-selected-plugin').val();
+                if (pluginID > -1) {
+                    var pluginInfo = pluginData.plugins[pluginID];
+                    pluginname.val(pluginInfo.pluginname);
+                    jarfile.val(pluginInfo.jarfile);
+                    version.val(pluginInfo.version);
+                    md5hash.val(pluginInfo.md5);
+                }
+            });
+            $('#edit-plugin-modal').modal('show');
+            $('#edit-plugin-modal').on('hidden.bs.modal', function() {
+                resetModal();
+            });
+        }
+
+        function addParamField() {
+            var paramHTML = "<div class='form-group row'>";
+            paramHTML += "<div class='col-sm-2'><input class='form-control' name='edit-plugin-param-keys[]' placeholder='Parameter Key' /></div>";
+            paramHTML += "<div class='col-sm-9'><input class='form-control' name='edit-plugin-param-values[]' placeholder='Parameter Value' /></div>";
+            paramHTML += "<button type='button' class='btn btn-danger' onclick='$(this).closest(\"div\").remove();'><i class='fa fa-trash'></i></button>";
+            paramHTML += "</div>";
+            $(paramHTML).insertBefore( $("#addParamBtn") );
+        }
+
+        function deleteplugin(d) {
+            if(selected_node) {
+                nodes.splice(nodes.indexOf(selected_node), 1);
+                spliceLinksForNode(selected_node);
+            } else if(selected_link) {
+                links.splice(links.indexOf(selected_link), 1);
+            }
+            selected_link = null;
+            selected_node = null;
+            tooltip.style('visibility', 'hidden');
+            clearTimeout(tooltip_show);
+            restart();
+        }
+
+        function cancelUpdatePlugin() {
+            resetModal();
+        }
+
+        function updatePlugin() {
+            var index = $('#edit-plugin-index').val();
+            var node = nodes[index];
+            var inputParamKeys = []
+            $('input[name^="edit-plugin-param-input-keys"]').each(function() {
+                inputParamKeys.push($(this).val());
+            });
+            var inputParamValues = []
+            $('input[name^="edit-plugin-param-input-values"]').each(function() {
+                inputParamValues.push($(this).val());
+            });
+            var selectParamKeys = []
+            $('input[name^="edit-plugin-param-select-keys"]').each(function() {
+                selectParamKeys.push($(this).val());
+            });
+            var selectParamValues = []
+            $('select[name^="edit-plugin-param-select-values"]').each(function() {
+                selectParamValues.push($(this).val());
+            });
+            node.params = {};
+            for (var i = 0; i < inputParamKeys.length; i++) {
+                node.params[inputParamKeys[i]] = inputParamValues[i];
+            }
+            for (var i = 0; i < selectParamKeys.length; i++) {
+                node.params[selectParamKeys[i]] = selectParamValues[i];
+            }
+            restart();
+            resetModal();
+        }
+
+        function resetModal() {
+            editting_plugin = false;
+            $('#edit-plugin-modal').modal('hide');
+            $('#edit-plugin-modal-title').html('');
+            $('#edit-plugin-modal-body').html('');
+            if (active_menu != null)
+                active_menu.hide();
+            active_menu = null;
+            active_menu_node = null;
+            selected_link = null;
+            selected_node = null;
+            tooltip.style('visibility', 'hidden');
+            clearTimeout(tooltip_show);
+            restart();
+        }
+
+        function previewCADL() {
+            editting_plugin = true;
+            var cadl = generateCADL();
+            $('#submit-application-modal-body').html('<pre style="max-height: 300px; overflow-y: scroll;">' + syntaxHighlight(JSON.stringify(cadl, undefined, 4)) + '</pre>');
+            $('#submit-application-modal').modal('show');
+        }
+
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'key';
+                    } else {
+                        cls = 'string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function submitCADL() {
+            editting_plugin = false;
+            $('#submit-application-modal').modal('hide');
+            var allValidNodes = true;
+            $.each(nodes, function(i, v) {
+                if (!checknode(v))
+                    allValidNodes = false;
+            });
+            if (allValidNodes) {
+                var cadl = generateCADL();
+                console.log("Submitting CADL");
+                console.log(cadl);
+                var data = {};
+                data.tenant_id = "0";
+                data.pipeline = JSON.stringify(cadl, undefined, 4);
+                console.log(data);
+                $.post("/services/applications/add", data, function(result) {
+                    window.location.href = "/services/applications";
+                });
+            } else {
+                alert("There are invalid nodes (highlighted in red) that need correcting!")
+            }
+        }
+
+        function generateCADL() {
+            var cadl = {};
+            cadl['pipeline_id'] = '0';
+            cadl['pipeline_name'] = 'demo_pipeline';
+            cadl['nodes'] = [];
+            $.each(nodes, function(i, v) {
+                var node = {
+                    'type': 'dummy',
+                    'node_name': v.title,
+                    'node_id': v.id,
+                    'isSource': false,
+                    'workloadUtil': 0.0,
+                    'params': v.params
+                };
+                cadl['nodes'].push(node);
+            });
+            cadl['edges'] = [];
+            $.each(links, function(i, v) {
+                if (v.right) {
+                    var edge = {
+                        'edge_id': '0',
+                        'node_from': v.source.id,
+                        'node_to': v.target.id
+                    };
+                    cadl['edges'].push(edge);
+                }
+                if (v.left) {
+                    var edge = {
+                        'edge_id': '0',
+                        'node_from': v.target.id,
+                        'node_to': v.source.id
+                    };
+                    cadl['edges'].push(edge);
+                }
+            });
+            return cadl;
+        }
+
+        function showAddPlugin() {
+            editting_plugin = true;
+            $('#upload-plugin-modal').modal('show');
+        }
+
+        function uploadPlugin() {
+            editting_plugin = false;
+            var data = new FormData();
+            var file = $('#upload-plugin-modal-file')[0].files[0];
+            data.append('pluginname', file.name);
+            data.append('jarfile', file.name);
+            data.append('file', $('#upload-plugin-modal-file')[0].files[0]);
+            $('#upload-plugin-modal-form').css("display", "none");
+            $('#upload-plugin-modal-waiting').css("display", "block");
+            $.ajax({
+                url: '/plugins/uploadplugin',
+                method: "POST",
+                dataType: 'json',
+                data: data,
+                processData: false,
+                contentType: false,
+                success: function(result) {
+                    $('#upload-plugin-modal').modal('hide');
+                    $('#upload-plugin-modal-file').val('');
+                    $('#upload-plugin-modal-form').css("display", "block");
+                    $('#upload-plugin-modal-waiting').css("display", "none");
+                    alert("Plugin uploaded!");
+                    updateRepoData();
+                },
+                error: function(err) {
+                    alert("Upload Failed: " + err);
+                }
+            });
+        }
+
+        function showFAQ() {
+            editting_plugin = true;
+            $('#faq-modal').modal('show');
+        }
+
+        function hideFAQ() {
+            editting_plugin = false;
+            $('#faq-modal').modal('hide');
+            resetModal();
+        }
+    </script>
+{% endblock %}

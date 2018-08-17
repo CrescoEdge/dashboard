@@ -1,0 +1,343 @@
+{% extends "page.html" %}
+
+{% block title %}Application{% endblock %}
+
+{% block pagecss %}
+    <link rel="stylesheet" href="/services/includes/css/datatables.min.css">
+{% endblock %}
+
+{% block pagecontent %}
+                <div id='app-row' class="row">
+                    <div class="card card-outline-primary">
+                        <div class="card-header bordered">
+                            <div class="header-block">
+                                <h2 class="cresco-list-title">Application</h2>
+                            </div>
+                            <div class="header-block pull-right">
+                                <button type="button" class="btn btn-success" onclick="exportApp()"><i class="fa fa-download" aria-hidden="true"></i> Export Application</button>
+                            </div>
+                        </div>
+                        <div class="card-block">
+                            <table cellpadding="5" cellspacing="0" border="0" style="padding-left: 50px;" width="100%">
+                                <tbody>
+                                    <tr>
+                                        <td>Name: </td>
+                                        <td id="application-name"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Status: </td>
+                                        <td id="application-status"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div id='nodes-row' class="row">
+                    <div class="card card-outline-primary">
+                        <div class="card-header bordered">
+                            <div class="header-block">
+                                <h3 class="cresco-list-title">Worker Nodes</h3>
+                            </div>
+                        </div>
+                        <div class="card-block">
+                            <table id='nodes' class='table table-bordered table-striped' cellspacing="0" width='100%'>
+                                <thead>
+                                <tr>
+                                    <td>ID</td>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Status</td>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                                <tfoot>
+                                <tr>
+                                    <td>ID</td>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Status</td>
+                                </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal fade" id="pipeline-export-modal">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    <span class="sr-only">Close</span>
+                                </button>
+                                <h4 class="modal-title" id="pipeline-export-modal-title"></h4>
+                            </div>
+                            <div class="modal-body" id="pipeline-export-modal-body"></div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+{% endblock %}
+
+{% block pagejs %}
+    <script type="text/javascript" src="/services/includes/js/datatables.min.js"></script>
+    <script type="text/javascript">
+        var app_name = $('#application-name');
+        var app_status = $('#application-status');
+        var node_table = $('#nodes');
+        var node_table_body = $('#nodes tbody');
+        var pipeline_id = "{{ app_id }}";
+        var pipeline;
+        var pipeline_export_modal = $('#pipeline-export-modal');
+        var pipeline_export_modal_title = $('#pipeline-export-modal-title');
+        var pipeline_export_modal_body = $('#pipeline-export-modal-body');
+        $(function() {
+            $.ajax({
+                url: "/services/applications/info/" + pipeline_id
+            }).complete(function(data) {
+                pipeline = data['responseJSON'];
+                console.log(pipeline);
+                app_name.html(pipeline.pipeline_name);
+                app_status.html(pipeline.status_desc);
+                var body = '';
+                $.each(pipeline.nodes, function(i, v) {
+                    body += '<tr node_id="' + v.node_id + '" node_name="' + v.node_name + '" inode_id="'  + v.params.inode_id + '" resource_id="'  + v.params.resource_id + '">';
+                    body += '<td>' + v.node_id + '</td>';
+                    body += '<td>' + v.node_name + '</td>';
+                    body += '<td>' + v.type + '</td>';
+                    body += '<td>' + v.params.status_desc.replace('iNode', 'Node') + '</td>';
+                    body += '</tr>';
+                });
+                node_table_body.html(body);
+                var nodes = node_table.DataTable({
+                    "columns": [
+                        { "visible": false },
+                        {},
+                        {},
+                        {}
+                    ]
+                });
+                node_table_body.on('click', 'tr', function() {
+                    var tr = $(this);
+                    if (!tr.attr('inode_id') || !tr.attr('resource_id'))
+                        return;
+                    var row = nodes.row( tr );
+                    var node_id = tr.attr('node_id');
+                    var node_name = tr.attr('node_name');
+                    var inode_id = tr.attr('inode_id');
+                    var resource_id = tr.attr('resource_id');
+                    if (row.child.isShown()) {
+                        row.child.hide();
+                        tr.removeClass('shown');
+                    } else {
+                        $.ajax({
+                            url: "/services/applications/nodeinfo/" + inode_id + "/" + resource_id
+                        }).complete(function(nodeResponse) {
+                            var nodeData = nodeResponse['responseJSON'];
+                            console.log(nodeData);
+                            if (nodeData.isassignmentresourceinfo === null) {
+                                alert('Node data currently unavailable. Check back later.');
+                                return;
+                            }
+                            var tmpId = guid();
+                            var nodeBody = "";
+                            nodeBody += "<div class='row'>";
+                            nodeBody += "<div class='col-md-12'>";
+                            nodeBody += "<div class='card'>";
+                            nodeBody += "<div class='card-block'>";
+                            nodeBody += "<div class='card-title-block'><h3 class='title'>Node (Active for " + secondsToStr(nodeData.isassignmentresourceinfo.runTime) + ")</h3></div>";
+                            nodeBody += "<br><dl>";
+                            nodeBody += "<dt>Disk</dt><dd>Read: " + humanFileSize(nodeData.isassignmentresourceinfo.diskReadTotal, false) + " / Write: " + humanFileSize(nodeData.isassignmentresourceinfo.diskWriteTotal, false) + "</dd>";
+                            nodeBody += "<dt>Network</dt><dd>RX: " + humanFileSize(nodeData.isassignmentresourceinfo.networkRxTotal, false) + " / TX: " + humanFileSize(nodeData.isassignmentresourceinfo.networkTxTotal, false) + "</dd>";
+                            nodeBody += "</dl>";
+                            nodeBody += "</div>";
+                            nodeBody += "</div>";
+                            nodeBody += "</div>";
+                            nodeBody += "</div>";
+                            nodeBody += "<div class='row'>";
+                            nodeBody += "<div class='col-md-12'>";
+                            nodeBody += "<div class='col-md-6'><div class='card'><div class='card-block'><div class='card-title-block'><h3 class='title'>Node CPU Usage</h3></div><section class='example'><div id='" + tmpId + "-node-cpu'></div></section></div></div></div>";
+                            nodeBody += "<div class='col-md-6'><div class='card'><div class='card-block'><div class='card-title-block'><h3 class='title'>Node Memory Usage</h3></div><section class='example'><div id='" + tmpId + "-node-memory'></div></section></div></div>";
+                            //nodeBody += "<div class='col-md-12'>";
+                            nodeBody += "<dl>";
+                            nodeBody += "<dt>Memory</dt><dd>Average: " + humanFileSize(nodeData.isassignmentresourceinfo.memAve, false) + " / Max: " + humanFileSize(nodeData.isassignmentresourceinfo.memMax, false) + "</dd>";
+                            nodeBody += "</dl>";
+                            nodeBody += "</div>";
+                            nodeBody += "</div>";
+                            nodeBody += "</div>";
+                            nodeBody += "<div class='row'>";
+                            nodeBody += "<div class='col-md-12'>";
+                            nodeBody += "<div class='card'>";
+                            nodeBody += "<div class='card-block'>";
+                            nodeBody += "<div class='card-title-block'><h3 class='title'>Node Raw Output</h3></div>";
+                            nodeBody += "<pre width='100%' style='overflow-x: auto'>" + syntaxHighlight(JSON.stringify(nodeData, undefined, 4)) + "</pre>";
+                            nodeBody += "</div>";
+                            nodeBody += "</div>";
+                            nodeBody += "</div>";
+                            nodeBody += "</div>";
+                            //row.child('<pre>' + syntaxHighlight(JSON.stringify(nodeData, undefined, 4)) + '</pre>').show();
+                            row.child(nodeBody).show();
+                            $('#' + tmpId + '-node-cpu').empty();
+                            Morris.Donut({
+                                element: tmpId + '-node-cpu',
+                                data: [
+                                    { label: "Node", value: nodeData.isassignmentresourceinfo.cpuAve },
+                                    { label: "System", value: (100 - nodeData.isassignmentresourceinfo.cpuAve) }
+                                ],
+                                resize: true,
+                                formatter: function(y) {
+                                    return y.toFixed(2) + "%";
+                                }
+                            });
+                            $('#' + tmpId + '-node-memory').empty();
+                            Morris.Donut({
+                                element: tmpId + '-node-memory',
+                                data: [
+                                    { label: "Node", value: nodeData.isassignmentresourceinfo.memCurrent },
+                                    { label: "System", value: nodeData.isassignmentresourceinfo.memLimit - nodeData.isassignmentresourceinfo.memCurrent }
+                                ],
+                                resize: true,
+                                colors: [
+                                    "#35ff87",
+                                    "#ff585b"
+                                ],
+                                formatter: function(y) {
+                                    return humanFileSize(y, false);
+                                }
+                            });
+                        }).error(function(errorData) {
+                            console.error(errorData);
+                        });
+                        /*var edges = '';
+                        edges += '<div class="container">';
+                        edges += '<div class="row">';
+                        edges += '<div class="col-xs-12">';
+                        edges += '<div class="card card-outline-secondary">';
+                        edges += '<div class="card-header bordered">';
+                        edges += '<div class="header-block"> ';
+                        edges += '<h4 class="cresco-list-title">' + node_name + '\'s Edges</h4>';
+                        edges += '</div>';
+                        edges += '</div>';
+                        edges += '<div class="card-block">';
+                        edges += '<table id="' + node_id + '-edges" class="table table-bordered table-striped" cellspacing="0">';
+                        edges += '<thead><tr><td>ID</td><td>From</td><td>To</td></tr></thead>';
+                        edges += '<tbody>';
+                        $.each(pipeline.edges, function(i, v) {
+                            if (node_id === v.node_to || node_id === v.node_from || true) {
+                                edges += '<tr>';
+                                edges += '<td>' + v.edge_id + '</td>';
+                                edges += '<td>' + v.node_from + '</td>';
+                                edges += '<td>' + v.node_to + '</td>';
+                                edges += '</tr>';
+                            }
+                        });
+                        edges += '</tbody>';
+                        edges += '<tfoot><tr><td>ID</td><td>From</td><td>To</td></tr></tfoot>';
+                        edges += '</table>';
+                        edges += '</div>';
+                        edges += '</div>';
+                        edges += '</div>';
+                        edges += '</div>';
+                        edges += '</div>';
+                        row.child(edges).show();
+                        $('#' + node_id + '-edges').DataTable();*/
+                    }
+                });
+            }).error(function(data) {
+                console.error(data);
+            });
+        });
+        function exportApp() {
+            $.ajax({
+                url: "/services/applications/export/" + pipeline_id
+            }).complete(function(data) {
+                var json = data['responseJSON'];
+                pipeline_export_modal_title.html(pipeline_id);
+                pipeline_export_modal_body.html('<pre>' + syntaxHighlight(JSON.stringify(json, undefined, 4)) + '</pre>');
+                pipeline_export_modal.modal('show');
+            }).error(function(data) {
+                console.error(data);
+            });
+        }
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'key';
+                    } else {
+                        cls = 'string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'null';
+                }
+                if (match.length > 100)
+                    match = match.substr(0, 100);
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+        function humanFileSize(bytes, si) {
+            var thresh = si ? 1000 : 1024;
+            if(Math.abs(bytes) < thresh) {
+                return bytes + ' B';
+            }
+            var units = si
+                ? ['kB','MB','GB','TB','PB','EB','ZB','YB']
+                : ['KiB','MiB','GiB','TiB','PiB','EiB','ZiB','YiB'];
+            var u = -1;
+            do {
+                bytes /= thresh;
+                ++u;
+            } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+            return bytes.toFixed(1)+' '+units[u];
+        }
+        function secondsToStr (secs) {
+            // TIP: to find current time in milliseconds, use:
+            // var  current_time_milliseconds = new Date().getTime();
+
+            function numberEnding (number) {
+                return (number > 1) ? 's' : '';
+            }
+
+            var temp = secs; //Math.floor(milliseconds / 1000);
+            var years = Math.floor(temp / 31536000);
+            if (years) {
+                return years + ' year' + numberEnding(years);
+            }
+            //TODO: Months! Maybe weeks?
+            var days = Math.floor((temp %= 31536000) / 86400);
+            if (days) {
+                return days + ' day' + numberEnding(days);
+            }
+            var hours = Math.floor((temp %= 86400) / 3600);
+            if (hours) {
+                return hours + ' hour' + numberEnding(hours);
+            }
+            var minutes = Math.floor((temp %= 3600) / 60);
+            if (minutes) {
+                return minutes + ' minute' + numberEnding(minutes);
+            }
+            var seconds = temp % 60;
+            if (seconds) {
+                return seconds + ' second' + numberEnding(seconds);
+            }
+            return 'less than a second'; //'just now' //or other string you like;
+        }
+        function guid() {
+            function s4() {
+                return Math.floor((1 + Math.random()) * 0x10000)
+                    .toString(16)
+                    .substring(1);
+            }
+            return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+                s4() + '-' + s4() + s4() + s4();
+        }
+    </script>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "page.html" %}
+
+{% block title %}Regions{% endblock %}
+
+{% block pagecss %}
+    <link rel="stylesheet" href="/services/includes/css/datatables.min.css">
+{% endblock %}
+
+{% block pagecontent %}
+                <div class="row">
+                    <div class="col-xs-12">
+                        <table id='regions' class='table table-bordered table-striped' cellspacing="0" width='100%'>
+                            <thead>
+                                <tr>
+                                    <td>Region</td>
+                                    <td>Agents</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td>Region</td>
+                                    <td>Agents</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal fade" id="region-info-modal">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    <span class="sr-only">Close</span>
+                                </button>
+                                <h4 class="modal-title" id="region-info-modal-title"></h4>
+                            </div>
+                            <div class="modal-body" id="region-info-modal-body">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+{% endblock %}
+
+{% block pagejs %}
+    <script type="text/javascript" src="/services/includes/js/datatables.min.js"></script>
+    <script type="text/javascript">
+        var regions = $('#regions');
+        var regions_body = $('#regions tbody');
+        var region_info_modal = $('#region-info-modal');
+        var region_info_modal_title = $('#region-info-modal-title');
+        var region_info_modal_body = $('#region-info-modal-body');
+        $(function() {
+            $.ajax({
+                url: "/services/regions/list"
+            }).complete(function(data) {
+                var json = data['responseJSON'];
+                var body = '';
+                $.each(json.regions, function(i, v) {
+                    body += '<tr>';
+                    body += '<td><a style="cursor: pointer" onclick="resources(\'' + v.name + '\');">' + v.name + '</a></td>';
+                    body += '<td>' + v.agents + '</td>';
+                    body += '</tr>';
+                });
+                regions_body.html(body);
+                regions.DataTable();
+            }).error(function(data) {
+                console.error(data);
+            });
+        });
+        function resources(region) {
+            $.ajax({
+                url: "/regions/resources/" + region
+            }).complete(function(data) {
+                var json = data['responseJSON'];
+                var disk_avail = parseInt(json.regionresourceinfo[0].disk_available);
+                var disk_total = parseInt(json.regionresourceinfo[0].disk_total);
+                var disk_used = disk_total - disk_avail;
+                var mem_avail = parseInt(json.regionresourceinfo[0].mem_available);
+                var mem_total = parseInt(json.regionresourceinfo[0].mem_total);
+                var mem_used = mem_total - mem_avail;
+                region_info_modal_title.html("Resources: " + region);
+                var body = "";
+                body += "<div class='row'>";
+                body += "<div class='col-xs-6'><div class='card'><div class='card-block'><div class='card-title-block'><h3 class='title'>Region Disk Usage</h3></div><section class='example'><div id='region-info-modal-body-disk'></div></section></div></div></div>";
+                body += "<div class='col-xs-6'><div class='card'><div class='card-block'><div class='card-title-block'><h3 class='title'>Region Memory Usage</h3></div><section class='example'><div id='region-info-modal-body-memory'></div></section></div></div></div>";
+                body += "</div>";
+                /*body += "<div class='row'><div class='col-xs-12'><pre>" +
+                    syntaxHighlight(JSON.stringify(json, undefined, 4)) +
+                    "</pre></div></div>";*/
+                region_info_modal_body.html(body);
+                region_info_modal.on('shown.bs.modal', function(e) {
+                    $('#region-info-modal-body-disk').empty();
+                    Morris.Donut({
+                        element: 'region-info-modal-body-disk',
+                        data: [
+                            { label: "Disk Free", value: disk_avail },
+                            { label: "Disk Used", value: disk_used }
+                        ],
+                        resize: true,
+                        colors: [
+                            "#35ff87",
+                            "#ff585b"
+                        ],
+                        formatter: function(y) {
+                            return humanFileSize(y, true);
+                        }
+                    });
+                    $('#region-info-modal-body-memory').empty();
+                    Morris.Donut({
+                        element: 'region-info-modal-body-memory',
+                        data: [
+                            { label: "Memory Free", value: mem_avail },
+                            { label: "Memory Used", value: mem_used }
+                        ],
+                        resize: true,
+                        colors: [
+                            "#35ff87",
+                            "#ff585b"
+                        ],
+                        formatter: function(y) {
+                            return humanFileSize(y, false);
+                        }
+                    });
+                });
+                region_info_modal.modal('show');
+            }).error(function(data) {
+                console.error(data);
+            });
+        }
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'key';
+                    } else {
+                        cls = 'string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+        function humanFileSize(bytes, si) {
+            var thresh = si ? 1000 : 1024;
+            if(Math.abs(bytes) < thresh) {
+                return bytes + ' B';
+            }
+            var units = si
+                ? ['kB','MB','GB','TB','PB','EB','ZB','YB']
+                : ['KiB','MiB','GiB','TiB','PiB','EiB','ZiB','YiB'];
+            var u = -1;
+            do {
+                bytes /= thresh;
+                ++u;
+            } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+            return bytes.toFixed(1)+' '+units[u];
+        }
+    </script>
+{% endblock %}

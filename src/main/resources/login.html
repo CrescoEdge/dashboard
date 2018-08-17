@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block basecontent %}
+    <div class="auth">
+        <div class="auth-container">
+            <div class="card">
+                <header class="auth-header">
+                    <h1 class="auth-title"><img src="includes/assets/logo.png" />Cresco Agent Management</h1>
+                </header>
+                <div class="auth-content">
+                    <p class="text-xs-center">LOGIN TO CONTINUE</p>
+{% if error != null %}
+                    <div style="text-align: center;">
+                        <span style="color: red;">{{ error }}</span>
+                    </div>
+{% endif %}
+                    <form id="login-form" action="/services/login" method="POST">
+                        <input name="redirect" type="hidden" value="{{ redirect }}" />
+                        <div class="form-group"> <label for="username">Username</label> <input type="text" class="form-control underlined" name="username" id="username" placeholder="Your username" required autofocus> </div>
+                        <div class="form-group"> <label for="password">Password</label> <input type="password" class="form-control underlined" name="password" id="password" placeholder="Your password" required> </div>
+                        <div class="form-group">
+                            <label for="rememberMe">
+                                <input class="checkbox" id="rememberMe" name="rememberMe" type="checkbox">
+                                <span>Remember me</span>
+                            </label>
+                            <!--<a href="./reset" class="forgot-btn pull-right">Forgot password?</a>-->
+                        </div>
+                        <div class="form-group"> <button type="submit" class="btn btn-block btn-primary">Login</button> </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

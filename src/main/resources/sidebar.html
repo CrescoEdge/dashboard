@@ -1,0 +1,69 @@
+            <aside class="sidebar">
+                <div class="sidebar-container">
+                    <div class="sidebar-header">
+                        <div class="brand">
+                            <div class="logo"><a href="/services/"><img src="/services/includes/assets/logo.png"/> Cresco</a></div>
+                        </div>
+                        <nav class="menu">
+                            <ul class="nav metismenu" id="sidebar-menu">
+{% if section == "applications" %}
+                                <li class="active open">
+{% else %}
+                                <li>
+{% endif %}
+                                    <a href=""><i class="fa fa-th-large"></i> Applications</a>
+{% if section == "applications" %}
+                                    <ul class="collapse in">
+{% else %}
+                                    <ul class="collapse">
+{% endif %}
+{% if section == "applications" and page == "index" %}
+                                        <li class="active">
+{% else %}
+                                        <li>
+{% endif %}
+                                            <a href="/services/applications"><i class="fa fa-table"></i> Overview</a>
+                                        </li>
+                                    </ul>
+                                </li>
+{% if section == "regions" or section == "agents" or section == "plugins" %}
+                                <li class="active open">
+{% else %}
+                                <li>
+{% endif %}
+                                    <a href=""><i class="fa fa-desktop"></i> Backend</a>
+{% if section == "regions" or section == "agents" or section == "plugins" %}
+                                    <ul class="collapse in">
+{% else %}
+                                    <ul class="collapse">
+{% endif %}
+{% if section == "regions" and page == "index" %}
+                                        <li class="active">
+{% else %}
+                                        <li>
+{% endif %}
+                                            <a href="/services/regions"><i class="fa fa-sitemap"></i> Regions</a>
+                                        </li>
+{% if section == "agents" and page == "index" %}
+                                        <li class="active">
+{% else %}
+                                        <li>
+{% endif %}
+                                            <a href="/services/agents"><i class="fa fa-laptop"></i> Agents</a>
+                                        </li>
+{% if section == "plugins" and page == "index" %}
+                                        <li class="active">
+{% else %}
+                                        <li>
+{% endif %}
+                                            <a href="/services/plugins"><i class="fa fa-plug"></i> Plugins</a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                    <footer class="sidebar-footer">
+                    </footer>
+            </aside>
+            <div class="sidebar-overlay" id="sidebar-overlay"></div>

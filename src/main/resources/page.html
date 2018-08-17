@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block basecss %}
+{% block pagecss %}{% endblock %}
+{% endblock %}
+
+{% block basecontent %}
+    <div class="main-wrapper">
+        <div class="app" id="app">
+{% include "header.html" %}
+
+{% include "sidebar.html" %}
+
+            <article class="content dashboard-page">
+{% block pagecontent %}{% endblock %}
+            </article>
+{% include "footer.html" %}
+
+        </div>
+    </div>
+{% endblock %}
+
+{% block basejs %}
+    <script src="/services/includes/js/cresco.js"></script>
+{% block pagejs %}{% endblock %}
+{% endblock %}

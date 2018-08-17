@@ -1,0 +1,219 @@
+{% extends "page.html" %}
+
+{% block title %}Agents{% endblock %}
+
+{% block pagecss %}
+    <link rel="stylesheet" href="/services/includes/css/datatables.min.css">
+{% endblock %}
+
+{% block pagecontent %}
+                <div class="row">
+                    <div class="col-xs-4">
+                        <select class="form-control" id="regions" name="regions"></select>
+                        <label for="regions">Region</label>
+                    </div>
+                </div>
+                <div id='agents-row' class="row" style="display: none;">
+                    <div class="col-xs-4">
+                        <select class="form-control" id="agents" name="agents" disabled></select>
+                        <label for="agents">Agent</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        &nbsp;
+                    </div>
+                </div>
+                <div id='plugins-row' class="row" style="display: none;">
+                    <div class="col-xs-12">
+                        <table id='plugins' class='table table-bordered table-striped' cellspacing="0" width='100%'>
+                            <thead>
+                            <tr>
+                                <td>Plugin</td>
+                                <td>Region</td>
+                                <td>Agent</td>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                            <tfoot>
+                            <tr>
+                                <td>Plugin</td>
+                                <td>Region</td>
+                                <td>Agent</td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal fade" id="plugin-info-modal">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                    <span class="sr-only">Close</span>
+                                </button>
+                                <h4 class="modal-title" id="plugin-info-modal-title"></h4>
+                            </div>
+                            <div class="modal-body" id="plugin-info-modal-body"></div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+{% endblock %}
+
+{% block pagejs %}
+    <script type="text/javascript" src="/services/includes/js/datatables.min.js"></script>
+    <script type="text/javascript">
+        var regions = $('#regions');
+        var agents_row = $('#agents-row');
+        var agents = $('#agents');
+        var plugins_row = $('#plugins-row');
+        var plugins = $('#plugins');
+        var plugins_body = $('#plugins tbody');
+        var plugin_info_modal = $('#plugin-info-modal');
+        var plugin_info_modal_title = $('#plugin-info-modal-title');
+        var plugin_info_modal_body = $('#plugin-info-modal-body');
+        function plugininfo(region, agent, plugin) {
+            $.ajax({
+                url: "/plugins/info/" + region + "/" + agent + "/" + plugin
+            }).complete(function(data) {
+                var json = data['responseJSON'];
+                plugin_info_modal_title.html(region + "<br>" + agent + "<br>" + plugin);
+                plugin_info_modal_body.html('<pre>' + syntaxHighlight(JSON.stringify(json, undefined, 4)) + '</pre>');
+                plugin_info_modal.modal('show');
+            }).error(function(data) {
+                console.error(data);
+            });
+        }
+        $(function() {
+            $.ajax({
+                url: "/services/regions/list/"
+            }).complete(function(data) {
+                var json = data['responseJSON'];
+                var options = '<option value="" selected>All</option>';
+                $.each(json.regions, function(i, v) {
+                    options += '<option value"' + v.name + '">' + v.name + '</option>';
+                });
+                regions.html(options);
+            }).error(function(data) {
+                console.error(data);
+            });
+            regions.change(function() {
+                var region = regions.val();
+                if (region === 'blank') {
+                    plugins_row.css('display', 'none');
+                    return;
+                }
+                if (region === null)
+                    region = "";
+                if (region === '') {
+                    agents.val("blank");
+                    agents.prop('disabled', true);
+                    agents_row.css('display', 'none');
+                    $.ajax({
+                        url: "/services/plugins/list/"
+                    }).complete(function(data) {
+                        var json = data['responseJSON'];
+                        var body = '';
+                        $.each(json.plugins, function(i, v) {
+                            body += '<tr>';
+                            body += '<td><a style="cursor: pointer" onclick="plugininfo(\'' + v.region + '\',\'' + v.agent + '\',\'' + v.name + '\');">' + v.name + '</a></td>';
+                            body += '<td>' + v.region + '</td>';
+                            body += '<td>' + v.agent + '</td>';
+                            body += '</tr>';
+                        });
+                        plugins_body.html(body);
+                        plugins.DataTable();
+                        plugins_row.css('display', 'block');
+                    }).error(function(data) {
+                        console.error(data);
+                    });
+                    return;
+                }
+                $.ajax({
+                    url: "/services/plugins/list/" + region
+                }).complete(function(data) {
+                    var json = data['responseJSON'];
+                    var body = '';
+                    $.each(json.plugins, function(i, v) {
+                        body += '<tr>';
+                        body += '<td><a style="cursor: pointer" onclick="plugininfo(\'' + v.region + '\',\'' + v.agent + '\',\'' + v.name + '\');">' + v.name + '</a></td>';
+                        body += '<td>' + v.region + '</td>';
+                        body += '<td>' + v.agent + '</td>';
+                        body += '</tr>';
+                    });
+                    plugins_body.html(body);
+                    plugins.DataTable();
+                    plugins_row.css('display', 'block');
+                }).error(function(data) {
+                    console.error(data);
+                });
+                $.ajax({
+                    url: "/services/agents/list/" + region
+                }).complete(function(data) {
+                    var json = data['responseJSON'];
+                    var options = '<option value="">All</option>';
+                    $.each(json.agents, function(i, v) {
+                        options += '<option value"' + v.name + '">' + v.name + '</option>';
+                    });
+                    agents.html(options);
+                    agents.prop('disabled', false);
+                    agents_row.css('display', 'block');
+                }).error(function(data) {
+                    console.error(data);
+                });
+            });
+            agents.change(function() {
+                var region = regions.val();
+                if (region === '')
+                    region = '_all_';
+                var agent = agents.val();
+                if (region === 'blank' || agent === 'blank') {
+                    plugins_row.css('display', 'none');
+                    return;
+                }
+                $.ajax({
+                    url: "/services/plugins/list/" + region + "/" + agent
+                }).complete(function(data) {
+                    var json = data['responseJSON'];
+                    var body = '';
+                    $.each(json.plugins, function(i, v) {
+                    body += '<tr>';
+                        body += '<td><a style="cursor: pointer" onclick="plugininfo(\'' + v.region + '\',\'' + v.agent + '\',\'' + v.name + '\');">' + v.name + '</a></td>';
+                        body += '<td>' + v.region + '</td>';
+                        body += '<td>' + v.agent + '</td>';
+                        body += '</tr>';
+                    });
+                    plugins_body.html(body);
+                    plugins.DataTable();
+                    plugins_row.css('display', 'block');
+                }).error(function(data) {
+                    console.error(data);
+                });
+            })
+            regions.change();
+        });
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'key';
+                    } else {
+                        cls = 'string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+    </script>
+{% endblock %}

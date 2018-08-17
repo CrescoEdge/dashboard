@@ -1,0 +1,146 @@
+{{> header}}
+    <!-- Breadcrumb-->
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">Home</li>
+        <li class="breadcrumb-item active">Overview</li>
+        <!-- Breadcrumb Menu-->
+        <li class="breadcrumb-menu d-md-down-none">
+            <div class="btn-group" role="group" aria-label="Button group">
+
+            </div>
+        </li>
+    </ol>
+    <div class="container-fluid">
+        <div class="animated fadeIn">
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fa fa-align-justify"></i> Cresco Operational Overview
+                        </div>
+                        <div class="card-body pb-0">
+                            This page should have some cool stats:
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <div class="callout callout-info">
+                                        <small class="text-muted">New Clients</small><br>
+                                        <strong class="h4">9,123</strong>
+                                    </div>
+                                </div><!--/.col-->
+                                <div class="col-sm-4">
+                                    <div class="callout callout-danger">
+                                        <small class="text-muted">Recuring Clients</small><br>
+                                        <strong class="h4">22,643</strong>
+                                    </div>
+                                </div><!--/.col-->
+                                <div class="col-sm-4">
+                                    <div class="callout callout-warning">
+                                        <small class="text-muted">Pageviews</small><br>
+                                        <strong class="h4">78,623</strong>
+                                    </div>
+                                </div><!--/.col-->
+                                <div class="col-sm-4">
+                                    <div class="callout callout-success">
+                                        <small class="text-muted">Organic</small><br>
+                                        <strong class="h4">49,123</strong>
+                                    </div>
+                                </div><!--/.col-->
+                                <div class="col-sm-4">
+                                    <div class="callout">
+                                        <small class="text-muted">CTR</small><br>
+                                        <strong class="h4">23%</strong>
+                                    </div>
+                                </div><!--/.col-->
+                                <div class="col-sm-4">
+                                    <div class="callout callout-primary">
+                                        <small class="text-muted">Bounce Rate</small><br>
+                                        <strong class="h4">5%</strong>
+                                    </div>
+                                </div><!--/.col-->
+                            </div><!--/.row-->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fa fa-align-justify"></i> Cresco Operational Overview
+                        </div>
+                        <div class="card-body pb-0">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="col-sm-12 preview-textfield" id="gauge1-text" style="text-align: center; font-size: 24px; font-weight: bold;"></div>
+                                    <div class="col-sm-12"><canvas id="gauge1"></canvas></div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="col-sm-12 preview-textfield" id="gauge2-text" style="text-align: center; font-size: 24px; font-weight: bold;"></div>
+                                    <div class="col-sm-12"><canvas id="gauge2"></canvas></div>
+                                </div>
+                            </div><!--/.row-->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<script type="text/javascript">
+    let gauges = [];
+    function addGauge(value, max, min) {
+        min = min || 0;
+        let gauge_id = $.uuid();
+        let gauge = `<div class="col-sm-6">`;
+
+        gauge = `</div>`;
+    }
+    $(function() {
+        let opts1 = {
+            angle: 0.15, /// The span of the gauge arc
+            lineWidth: 0.44, // The line thickness
+            pointer: {
+                length: 0.5, // Relative to gauge radius
+                strokeWidth: 0.035 // The thickness
+            },
+            colorStart: '#6FADCF',   // Colors
+            colorStop: '#8FC0DA',    // just experiment with them
+            strokeColor: '#E0E0E0',   // to see which ones work best for you
+            highDpiSupport: true,
+        };
+        let target1 = document.getElementById('gauge1'); // your canvas element
+        let gauge1 = new Gauge(target1).setOptions(opts1); // create sexy gauge!
+        gauge1.animationSpeed = 10; // set animation speed (32 is default value)
+        gauge1.setTextField(document.getElementById('gauge1-text'));
+        gauge1.maxValue = 3000; // set max gauge value
+        gauge1.setMinValue(0);  // set min value
+        gauge1.set(1250); // set actual value
+        let opts2 = {
+            angle: 0.35, // The span of the gauge arc
+            lineWidth: 0.1, // The line thickness
+            radiusScale: 1, // Relative radius
+            limitMax: false,     // If false, max value increases automatically if value > maxValue
+            limitMin: false,     // If true, the min value of the gauge will be fixed
+            colorStart: '#0148a0',   // Colors
+            colorStop: '#C0C0DB',    // just experiment with them
+            strokeColor: '#EEEEEE',  // to see which ones work best for you
+            generateGradient: true,
+            highDpiSupport: true,     // High resolution support
+        };
+        let target2 = document.getElementById('gauge2'); // your canvas element
+        let gauge2 = new Donut(target2).setOptions(opts2); // create sexy gauge!
+        gauge2.setTextField(document.getElementById('gauge2-text'));
+        gauge2.maxValue = 3000; // set max gauge value
+        gauge2.setMinValue(0);  // Prefer setter over gauge.minValue = 0
+        gauge2.animationSpeed = 20; // set animation speed (32 is default value)
+        gauge2.set(2250); // set actual value
+    });
+    (function($) {
+        $.uuid = function() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                let r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+                return v.toString(16);
+            });
+        };
+    })(jQuery);
+</script>
+{{> footer}}
