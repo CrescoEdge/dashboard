@@ -175,9 +175,9 @@ public class PluginExecutor implements Executor {
                         try{
                             String jarPath = listOfFiles[i].getAbsolutePath();
                             String jarFileName = listOfFiles[i].getName();
-                            String pluginName = getPluginName(jarPath);
-                            String pluginMD5 = getJarMD5(jarPath);
-                            String pluginVersion = getPluginVersion(jarPath);
+                            String pluginName = plugin.getPluginName(jarPath);
+                            String pluginMD5 = plugin.getJarMD5(jarPath);
+                            String pluginVersion = plugin.getPluginVersion(jarPath);
                             //System.out.println(pluginName + " " + jarFileName + " " + pluginVersion + " " + pluginMD5);
                             //pluginFiles.add(listOfFiles[i].getAbsolutePath());
                             Map<String,String> pluginMap = new HashMap<>();
@@ -205,80 +205,5 @@ public class PluginExecutor implements Executor {
         }
         return pluginFiles;
     }
-
-    private String getPluginName(String jarFile) {
-        String version = null;
-        try{
-            //String jarFile = AgentEngine.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-            //logger.debug("JARFILE:" + jarFile);
-            //File file = new File(jarFile.substring(5, (jarFile.length() )));
-            File file = new File(jarFile);
-
-            boolean calcHash = true;
-            BasicFileAttributes attr = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
-            long fileTime = attr.creationTime().toMillis();
-
-            FileInputStream fis = new FileInputStream(file);
-            @SuppressWarnings("resource")
-            JarInputStream jarStream = new JarInputStream(fis);
-            Manifest mf = jarStream.getManifest();
-
-            Attributes mainAttribs = mf.getMainAttributes();
-            version = mainAttribs.getValue("artifactId");
-        }
-        catch(Exception ex)
-        {
-            ex.printStackTrace();
-
-        }
-        return version;
-    }
-
-    private String getPluginVersion(String jarFile) {
-        String version = null;
-        try{
-            //String jarFile = AgentEngine.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-            //logger.debug("JARFILE:" + jarFile);
-            //File file = new File(jarFile.substring(5, (jarFile.length() )));
-            File file = new File(jarFile);
-
-            boolean calcHash = true;
-            BasicFileAttributes attr = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
-            long fileTime = attr.creationTime().toMillis();
-
-            FileInputStream fis = new FileInputStream(file);
-            @SuppressWarnings("resource")
-            JarInputStream jarStream = new JarInputStream(fis);
-            Manifest mf = jarStream.getManifest();
-
-            Attributes mainAttribs = mf.getMainAttributes();
-            version = mainAttribs.getValue("Implementation-Version");
-        }
-        catch(Exception ex)
-        {
-            ex.printStackTrace();
-
-        }
-        return version;
-    }
-
-    private String getJarMD5(String pluginFile) {
-        String jarString = null;
-        try
-        {
-            Path path = Paths.get(pluginFile);
-            byte[] data = Files.readAllBytes(path);
-
-            MessageDigest m= MessageDigest.getInstance("MD5");
-            m.update(data);
-            jarString = new BigInteger(1,m.digest()).toString(16);
-        }
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-        return jarString;
-    }
-
 
 }
