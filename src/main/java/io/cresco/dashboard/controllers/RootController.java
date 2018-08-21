@@ -12,7 +12,6 @@ import io.cresco.dashboard.models.LoginSession;
 import io.cresco.dashboard.services.AlertService;
 import io.cresco.dashboard.services.LoginSessionService;
 import io.cresco.library.plugin.PluginBuilder;
-import io.cresco.library.plugin.PluginService;
 import io.cresco.library.utilities.CLogger;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -33,16 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/*
-@Component(service = Object.class,
-        property="dashboard=root",
-        reference = @Reference(
-                name="io.cresco.library.plugin.PluginService",
-                service=PluginService.class,
-                target="(dashboard=core)"
-        )
-)
-*/
 
 @Component(service = Object.class,
         property="dashboard=root",
@@ -55,10 +44,7 @@ import java.util.Map;
 )
 
 @Path("/")
-//@ApplicationPath("/")
 public class RootController {
-    //private static PluginBuilder plugin = null;
-    //private static CLogger logger = null;
     private PluginBuilder plugin;
     private CLogger logger;
 
@@ -82,11 +68,6 @@ public class RootController {
         }
     }
 
-    public static void connectPlugin(PluginBuilder inPlugin) {
-        //plugin = inPlugin;
-        //logger = plugin.getLogger(RootController.class.getName(),CLogger.Level.Info);
-        //logger = new CLogger(RootController.class, in_plugin.getMsgOutQueue(), in_plugin.getRegion(), in_plugin.getAgent(), in_plugin.getPluginID(), CLogger.Level.Trace);
-    }
 
     @GET
     @Produces(MediaType.TEXT_HTML)
@@ -97,12 +78,6 @@ public class RootController {
             PebbleEngine engine = new PebbleEngine.Builder().build();
             PebbleTemplate compiledTemplate = engine.getTemplate("index.html");
 
-            /*
-            Map<String, Object> context = new HashMap<>();
-            context.put("user", "admin");
-            context.put("section", "root");
-            context.put("page", "index");
-            */
 
             Map<String, Object> context = new HashMap<>();
             try {
@@ -152,15 +127,12 @@ public class RootController {
             NewCookie deleteError = new NewCookie(LOGIN_ERROR_COOKIE_NAME, null, null, null, null, 0, false);
 
             Writer writer = new StringWriter();
-            //compiledTemplate.evaluate(writer, context);
             mustache.execute(writer, context);
 
             return Response.ok(writer.toString()).cookie(deleteRedirect, deleteError).build();
         } catch (PebbleException e) {
             return Response.ok("PebbleException: " + e.getMessage()).build();
-        } /*catch (IOException e) {
-            return Response.ok("IOException: " + e.getMessage()).build();
-        }*/ catch (Exception e) {
+        }  catch (Exception e) {
             logger.error("{}", e.getMessage());
             return Response.serverError().build();
         }
@@ -245,7 +217,6 @@ public class RootController {
     @PermitAll
     @GET
     @Path("/includes/{subResources:.*}")
-    //@Produces(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.TEXT_HTML)
     public Response getIncludes(@PathParam("subResources") String subResources)
     {
@@ -261,14 +232,12 @@ public class RootController {
             {
 
                 System.out.println("File NOT FOUND " + subResources);
-                //in = getClass().getResourceAsStream("/404.html");
                 return Response.status(Response.Status.NOT_FOUND).build();
             }
         }
         catch(Exception ex)
         {
             System.out.println(ex.toString());
-            //in = getClass().getResourceAsStream("/500.html");
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
 
         }
@@ -280,12 +249,6 @@ public class RootController {
         else
         {
             return Response.ok(in, mediaType(subResources)).build();
-            //return Response.ok(in, MediaType.TEXT_HTML).build();
-            /*
-            return Response.ok(in, MediaType.APPLICATION_OCTET_STREAM)
-                    .header("Content-Disposition", "attachment; filename=\"" + "somefile" + "\"" ) //optional
-                    .build();
-                    */
         }
 
     }
@@ -293,7 +256,6 @@ public class RootController {
     @PermitAll
     @GET
     @Path("/css/{subResources:.*}")
-    //@Produces(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.TEXT_HTML)
     public Response getCSS(@PathParam("subResources") String subResources)
     {
@@ -309,14 +271,12 @@ public class RootController {
             {
 
                 System.out.println("File NOT FOUND " + subResources);
-                //in = getClass().getResourceAsStream("/404.html");
                 return Response.status(Response.Status.NOT_FOUND).build();
             }
         }
         catch(Exception ex)
         {
             System.out.println(ex.toString());
-            //in = getClass().getResourceAsStream("/500.html");
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
 
         }
@@ -328,12 +288,7 @@ public class RootController {
         else
         {
             return Response.ok(in, mediaType(subResources)).build();
-            //return Response.ok(in, MediaType.TEXT_HTML).build();
-            /*
-            return Response.ok(in, MediaType.APPLICATION_OCTET_STREAM)
-                    .header("Content-Disposition", "attachment; filename=\"" + "somefile" + "\"" ) //optional
-                    .build();
-                    */
+
         }
 
     }
@@ -341,7 +296,6 @@ public class RootController {
     @PermitAll
     @GET
     @Path("/js/{subResources:.*}")
-    //@Produces(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.TEXT_HTML)
     public Response getJS(@PathParam("subResources") String subResources)
     {
@@ -357,14 +311,12 @@ public class RootController {
             {
 
                 System.out.println("NOT FOUND!");
-                //in = getClass().getResourceAsStream("/404.html");
                 return Response.status(Response.Status.NOT_FOUND).build();
             }
         }
         catch(Exception ex)
         {
             System.out.println(ex.toString());
-            //in = getClass().getResourceAsStream("/500.html");
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
 
         }
@@ -376,12 +328,6 @@ public class RootController {
         else
         {
             return Response.ok(in, mediaType(subResources)).build();
-            //return Response.ok(in, MediaType.TEXT_HTML).build();
-            /*
-            return Response.ok(in, MediaType.APPLICATION_OCTET_STREAM)
-                    .header("Content-Disposition", "attachment; filename=\"" + "somefile" + "\"" ) //optional
-                    .build();
-                    */
         }
 
     }
@@ -390,7 +336,6 @@ public class RootController {
     @PermitAll
     @GET
     @Path("/img/{subResources:.*}")
-    //@Produces(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.TEXT_HTML)
     public Response getImg(@PathParam("subResources") String subResources)
     {
@@ -406,14 +351,12 @@ public class RootController {
             {
 
                 System.out.println("NOT FOUND!");
-                //in = getClass().getResourceAsStream("/404.html");
                 return Response.status(Response.Status.NOT_FOUND).build();
             }
         }
         catch(Exception ex)
         {
             System.out.println(ex.toString());
-            //in = getClass().getResourceAsStream("/500.html");
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
 
         }
@@ -425,19 +368,12 @@ public class RootController {
         else
         {
             return Response.ok(in, mediaType(subResources)).build();
-            //return Response.ok(in, MediaType.TEXT_HTML).build();
-            /*
-            return Response.ok(in, MediaType.APPLICATION_OCTET_STREAM)
-                    .header("Content-Disposition", "attachment; filename=\"" + "somefile" + "\"" ) //optional
-                    .build();
-                    */
         }
 
     }
     @PermitAll
     @GET
     @Path("/vendors/{subResources:.*}")
-    //@Produces(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.TEXT_HTML)
     public Response getVendors(@PathParam("subResources") String subResources)
     {
@@ -453,14 +389,12 @@ public class RootController {
             {
 
                 System.out.println("NOT FOUND!");
-                //in = getClass().getResourceAsStream("/404.html");
                 return Response.status(Response.Status.NOT_FOUND).build();
             }
         }
         catch(Exception ex)
         {
             System.out.println(ex.toString());
-            //in = getClass().getResourceAsStream("/500.html");
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
 
         }
@@ -472,12 +406,6 @@ public class RootController {
         else
         {
             return Response.ok(in, mediaType(subResources)).build();
-            //return Response.ok(in, MediaType.TEXT_HTML).build();
-            /*
-            return Response.ok(in, MediaType.APPLICATION_OCTET_STREAM)
-                    .header("Content-Disposition", "attachment; filename=\"" + "somefile" + "\"" ) //optional
-                    .build();
-                    */
         }
 
     }
@@ -499,7 +427,6 @@ public class RootController {
                 return "text/css";
             case "svg":
                 return "image/svg+xml";
-                //return MediaType.APPLICATION_SVG_XML;
             case "html":
                 return MediaType.TEXT_HTML;
             case "txt":

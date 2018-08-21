@@ -12,7 +12,6 @@ import io.cresco.dashboard.models.LoginSession;
 import io.cresco.dashboard.services.LoginSessionService;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.PluginBuilder;
-import io.cresco.library.plugin.PluginService;
 import io.cresco.library.utilities.CLogger;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -41,8 +40,6 @@ import java.util.Map;
 
 @Path("regions")
 public class RegionsController {
-    //private static PluginBuilder plugin = null;
-    //private static CLogger logger = null;
 
     private PluginBuilder plugin;
     private CLogger logger;
@@ -65,13 +62,6 @@ public class RegionsController {
         }
     }
 
-    public static void connectPlugin(PluginBuilder inPlugin) {
-        //plugin = inPlugin;
-        //logger = plugin.getLogger(RegionsController.class.getName(),CLogger.Level.Info);
-        //logger = new CLogger(RegionsController.class, plugin.getMsgOutQueue(), plugin.getRegion(),
-        //        plugin.getAgent(), plugin.getPluginID(), CLogger.Level.Trace);
-    }
-
     @GET
     @Produces(MediaType.TEXT_HTML)
     public Response index(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
@@ -90,15 +80,12 @@ public class RegionsController {
             context.put("page", "index");
 
             Writer writer = new StringWriter();
-            //compiledTemplate.evaluate(writer, context);
             mustache.execute(writer, context);
 
             return Response.ok(writer.toString()).build();
         } catch (PebbleException e) {
             return Response.ok("PebbleException: " + e.getMessage()).build();
-        } /*catch (IOException e) {
-            return Response.ok("IOException: " + e.getMessage()).build();
-        }*/ catch (Exception e) {
+        }  catch (Exception e) {
             return Response.ok("Server error: " + e.getMessage()).build();
         }
     }
@@ -130,9 +117,7 @@ public class RegionsController {
             return Response.ok(writer.toString()).build();
         } catch (PebbleException e) {
             return Response.ok("PebbleException: " + e.getMessage()).build();
-        } /*catch (IOException e) {
-            return Response.ok("IOException: " + e.getMessage()).build();
-        }*/ catch (Exception e) {
+        }  catch (Exception e) {
             return Response.ok("Server error: " + e.getMessage()).build();
         }
     }
@@ -145,19 +130,7 @@ public class RegionsController {
         try {
             if (plugin == null)
                 return Response.ok("{\"regions\":[]}", MediaType.APPLICATION_JSON_TYPE).build();
-            /*
-            MsgEvent request = new MsgEvent(MsgEvent.Type.EXEC, plugin.getRegion(), plugin.getAgent(),
-                    plugin.getPluginID(), "Region List Request");
-            request.setParam("src_region", plugin.getRegion());
-            request.setParam("src_agent", plugin.getAgent());
-            request.setParam("src_plugin", plugin.getPluginID());
-            request.setParam("dst_region", plugin.getRegion());
-            request.setParam("dst_agent", plugin.getAgent());
-            request.setParam("dst_plugin", "plugin/0");
-            request.setParam("is_regional", Boolean.TRUE.toString());
-            request.setParam("is_global", Boolean.TRUE.toString());
-            request.setParam("globalcmd", Boolean.TRUE.toString());
-            */
+
             MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.EXEC);
             request.setParam("action", "listregions");
             MsgEvent response = plugin.sendRPC(request);
@@ -186,19 +159,7 @@ public class RegionsController {
         try {
             if (plugin == null)
                 return Response.ok("{\"regions\":[]}", MediaType.APPLICATION_JSON_TYPE).build();
-            /*
-            MsgEvent request = new MsgEvent(MsgEvent.Type.EXEC, plugin.getRegion(), plugin.getAgent(),
-                    plugin.getPluginID(), "Region List Request");
-            request.setParam("src_region", plugin.getRegion());
-            request.setParam("src_agent", plugin.getAgent());
-            request.setParam("src_plugin", plugin.getPluginID());
-            request.setParam("dst_region", plugin.getRegion());
-            request.setParam("dst_agent", plugin.getAgent());
-            request.setParam("dst_plugin", "plugin/0");
-            request.setParam("is_regional", Boolean.TRUE.toString());
-            request.setParam("is_global", Boolean.TRUE.toString());
-            request.setParam("globalcmd", Boolean.TRUE.toString());
-            */
+
             MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.EXEC);
             request.setParam("action", "resourceinfo");
             request.setParam("action_region", region);

@@ -668,6 +668,7 @@ public class PluginsController {
     }
     */
 
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("add/{json:.*}")
