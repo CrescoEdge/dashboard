@@ -552,11 +552,10 @@ public class PluginsController {
     }
 
     // save uploaded file to new location
-    private boolean saveToFile(InputStream uploadedInputStream,
-                            String uploadedFileLocation) {
+    private boolean saveToFile(InputStream uploadedInputStream, String uploadedFileLocation) {
         boolean isSaved = false;
+        OutputStream out = null;
         try {
-            OutputStream out = null;
             int read = 0;
             byte[] bytes = new byte[1024];
 
@@ -565,11 +564,17 @@ public class PluginsController {
                 out.write(bytes, 0, read);
             }
             out.flush();
-            out.close();
             isSaved = true;
         } catch (IOException e) {
-
             e.printStackTrace();
+        } finally {
+            if(out != null) {
+                try {
+                    out.close();
+                } catch (Exception ex) {
+                    logger.error(ex.getMessage());
+                }
+            }
         }
         return isSaved;
     }
@@ -646,6 +651,7 @@ public class PluginsController {
         }
     }
 
+    /*
     @GET
     @Path("repository")
     @Produces(MediaType.APPLICATION_JSON)
@@ -660,6 +666,7 @@ public class PluginsController {
             return Response.ok("[]", MediaType.APPLICATION_JSON_TYPE).build();
         }
     }
+    */
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
