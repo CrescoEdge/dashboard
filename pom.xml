@@ -73,10 +73,10 @@
         </dependency>
 
 
-        <!-- https://mvnrepository.com/artifact/org.osgi/org.osgi.core -->
+        <!-- https://mvnrepository.com/artifact/org.osgi/osgi.core -->
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
+            <artifactId>osgi.core</artifactId>
             <version>6.0.0</version>
             <scope>provided</scope>
         </dependency>
@@ -89,9 +89,10 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.osgi/osgi.annotation -->
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.annotation</artifactId>
+            <artifactId>osgi.annotation</artifactId>
             <version>6.0.0</version>
             <scope>provided</scope>
         </dependency>
