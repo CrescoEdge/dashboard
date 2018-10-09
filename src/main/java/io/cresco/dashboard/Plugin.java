@@ -75,8 +75,14 @@ public class Plugin implements PluginService {
     void deactivate(BundleContext context, Map<String,Object> map) {
 
         isStopped();
-        this.context = null;
-        this.map = null;
+
+        if(this.context != null) {
+            this.context = null;
+        }
+
+        if(this.map != null) {
+            this.map = null;
+        }
 
     }
 
@@ -134,8 +140,10 @@ public class Plugin implements PluginService {
 
     @Override
     public boolean isStopped() {
-        pluginBuilder.setExecutor(null);
-        pluginBuilder.setIsActive(false);
+        if(pluginBuilder != null) {
+            pluginBuilder.setExecutor(null);
+            pluginBuilder.setIsActive(false);
+        }
         return true;
     }
 
