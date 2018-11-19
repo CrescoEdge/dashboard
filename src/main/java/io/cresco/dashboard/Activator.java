@@ -32,7 +32,7 @@ public class Activator implements BundleActivator {
 
 
         //Delay JAXConnector Until after plugin has loaded for proper sequencing
-        new Thread(new JAXConnectorLoader(context)).start();
+        //new Thread(new JAXConnectorLoader(context)).start();
     }
 
     public void stop(BundleContext context) throws Exception {

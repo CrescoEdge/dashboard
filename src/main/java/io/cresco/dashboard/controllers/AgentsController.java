@@ -21,6 +21,7 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -48,17 +49,26 @@ import java.util.concurrent.ThreadLocalRandom;
 
 
 @Component(service = Object.class,
-        property="dashboard=agents",
+        //property="dashboard=agents",
+
+        property = {
+                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
+                JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
+                "dashboard=agents"
+        },
+
         reference = @Reference(
-                name="java.lang.Object",
-                service=Object.class,
+                name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
+                service=javax.ws.rs.ext.ExceptionMapper.class,
+                //name="java.lang.Object",
+                //service=Object.class,
                 target="(dashboard=nfx)",
                 policy=ReferencePolicy.STATIC
         )
 )
 
 
-@Path("agents")
+//@Path("agents")
 public class AgentsController {
     private PluginBuilder plugin;
     private CLogger logger;
@@ -90,6 +100,7 @@ public class AgentsController {
     }
 
     @GET
+    @Path("/dashboard/agents/")
     @Produces(MediaType.TEXT_HTML)
     public Response index(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {
@@ -123,7 +134,7 @@ public class AgentsController {
     }
 
     @GET
-    @Path("details/{region}/{agent}")
+    @Path("/dashboard/agents/details/{region}/{agent}")
     @Produces(MediaType.TEXT_HTML)
     public Response details(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID,
                             @PathParam("region") String region,
@@ -159,7 +170,7 @@ public class AgentsController {
     }
 
     @GET
-    @Path("list")
+    @Path("/dashboard/agents/list")
     @Produces(MediaType.APPLICATION_JSON)
     public Response list() {
         //logger.trace("Call to list()");
@@ -210,7 +221,7 @@ public class AgentsController {
     }
 
     @GET
-    @Path("listlocal")
+    @Path("/dashboard/agents/listlocal")
     @Produces(MediaType.APPLICATION_JSON)
     public Response listLocal() {
         logger.trace("Call to listLocal()");
@@ -230,7 +241,7 @@ public class AgentsController {
     }
 
     @GET
-    @Path("list/{region}")
+    @Path("/dashboard/agents/list/{region}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response listByRegion(@PathParam("region") String region) {
         logger.trace("Call to listByRegion({})", region);
@@ -269,7 +280,7 @@ public class AgentsController {
     }
 
     @GET
-    @Path("resources/{region}/{agent}")
+    @Path("/dashboard/agents/resources/{region}/{agent}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response resources(@PathParam("region") String region,
                               @PathParam("agent") String agent) {
@@ -314,7 +325,7 @@ public class AgentsController {
 
 
     @GET
-    @Path("getfreeport/{region}/{agent}/{count}")
+    @Path("/dashboard/agents/getfreeport/{region}/{agent}/{count}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getfreeport(@PathParam("region") String region,
                                 @PathParam("agent") String agent,

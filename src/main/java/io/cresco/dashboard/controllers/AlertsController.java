@@ -15,6 +15,7 @@ import io.cresco.library.utilities.CLogger;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.ws.rs.CookieParam;
 import javax.ws.rs.GET;
@@ -40,16 +41,25 @@ import java.util.Map;
 */
 
 @Component(service = Object.class,
-        property="dashboard=alerts",
+        //property="dashboard=alerts",
+
+        property = {
+                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
+                JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
+                "dashboard=alerts"
+        },
+
         reference = @Reference(
-                name="java.lang.Object",
-                service=Object.class,
+                name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
+                service=javax.ws.rs.ext.ExceptionMapper.class,
+                //name="java.lang.Object",
+                //service=Object.class,
                 target="(dashboard=nfx)",
                 policy=ReferencePolicy.STATIC
         )
 )
 
-@Path("alerts")
+//@Path("alerts")
 public class AlertsController {
     private PluginBuilder plugin = null;
     private CLogger logger = null;
@@ -80,6 +90,7 @@ public class AlertsController {
     }
 
     @GET
+    @Path("/dashboard/alerts/")
     @Produces(MediaType.TEXT_HTML)
     public Response index(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {
@@ -106,7 +117,7 @@ public class AlertsController {
     }
 
     @GET
-    @Path("list")
+    @Path("/dashboard/alerts/list")
     @Produces(MediaType.APPLICATION_JSON)
     public Response list(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {

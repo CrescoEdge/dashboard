@@ -3,7 +3,7 @@
 {% block title %}Regions{% endblock %}
 
 {% block pagecss %}
-    <link rel="stylesheet" href="/services/includes/css/datatables.min.css">
+    <link rel="stylesheet" href="/dashboard/includes/css/datatables.min.css">
 {% endblock %}
 
 {% block pagecontent %}
@@ -48,7 +48,7 @@
 {% endblock %}
 
 {% block pagejs %}
-    <script type="text/javascript" src="/services/includes/js/datatables.min.js"></script>
+    <script type="text/javascript" src="/dashboard/includes/js/datatables.min.js"></script>
     <script type="text/javascript">
         var regions = $('#regions');
         var regions_body = $('#regions tbody');
@@ -57,7 +57,7 @@
         var region_info_modal_body = $('#region-info-modal-body');
         $(function() {
             $.ajax({
-                url: "/services/regions/list"
+                url: "/dashboard/regions/list"
             }).complete(function(data) {
                 var json = data['responseJSON'];
                 var body = '';

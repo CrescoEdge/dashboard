@@ -3,9 +3,9 @@
 {% block title %}Build New Application{% endblock %}
 
 {% block pagecss %}
-<link rel="stylesheet" href="/services/includes/css/force.css">
-<link rel="stylesheet" href="/services/includes/css/context-menu.css">
-<link rel="stylesheet" href="/services/includes/css/menu.css">
+<link rel="stylesheet" href="/dashboard/includes/css/force.css">
+<link rel="stylesheet" href="/dashboard/includes/css/context-menu.css">
+<link rel="stylesheet" href="/dashboard/includes/css/menu.css">
 {% endblock %}
 
 {% block pagecontent %}
@@ -57,7 +57,7 @@
                                                 </div>
                                             </div>
                                             <div class="card-block">
-                                                <p>To submit your application, all plugins must be properly configured. This is indicated by a green color in the application builder area. To configure a plugin, simply click on it, then on the <i class="fa fa-wrench"></i> button and fill in the required information. Once all plugins are properly configured, right-click and select <b>Preview CADL</b>. After reviewing the generated <b>Cresco Application Description Language</b> (CADL) file, you may either submit directly from the pop-up, or copy the CADL and submit from the <a href="/services/applications">Applications</a> page.</p>
+                                                <p>To submit your application, all plugins must be properly configured. This is indicated by a green color in the application builder area. To configure a plugin, simply click on it, then on the <i class="fa fa-wrench"></i> button and fill in the required information. Once all plugins are properly configured, right-click and select <b>Preview CADL</b>. After reviewing the generated <b>Cresco Application Description Language</b> (CADL) file, you may either submit directly from the pop-up, or copy the CADL and submit from the <a href="/dashboard/applications">Applications</a> page.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -158,10 +158,10 @@
 {% endblock %}
 
 {% block pagejs %}
-    <script type="text/javascript" src="/services/includes/js/d3.v3.min.js"></script>
-    <script type="text/javascript" src="/services/includes/js/context-menu.js"></script>
-    <script type="text/javascript" src="/services/includes/js/menu.js"></script>
-    <script type="text/javascript" src="/services/includes/js/force.js"></script>
+    <script type="text/javascript" src="/dashboard/includes/js/d3.v3.min.js"></script>
+    <script type="text/javascript" src="/dashboard/includes/js/context-menu.js"></script>
+    <script type="text/javascript" src="/dashboard/includes/js/menu.js"></script>
+    <script type="text/javascript" src="/dashboard/includes/js/force.js"></script>
     <script type="text/javascript">
         var pluginData = {};
         var regionData = {};
@@ -174,19 +174,19 @@
         });
 
         function updateRepoData() {
-            $.getJSON('/services/plugins/listrepo', function(data) {
+            $.getJSON('/dashboard/plugins/listrepo', function(data) {
                 pluginData = data;
             });
         }
 
         function updateRegionData() {
-            $.getJSON('/services/regions/list', function(data) {
+            $.getJSON('/dashboard/regions/list', function(data) {
                 regionData = data;
             });
         }
 
         function updateAgentData() {
-            $.getJSON('/services/agents/list', function(data) {
+            $.getJSON('/dashboard/agents/list', function(data) {
                 agentData = data;
             });
         }
@@ -387,8 +387,8 @@
                 data.tenant_id = "0";
                 data.pipeline = JSON.stringify(cadl, undefined, 4);
                 console.log(data);
-                $.post("/services/applications/add", data, function(result) {
-                    window.location.href = "/services/applications";
+                $.post("/dashboard/applications/add", data, function(result) {
+                    window.location.href = "/dashboard/applications";
                 });
             } else {
                 alert("There are invalid nodes (highlighted in red) that need correcting!")

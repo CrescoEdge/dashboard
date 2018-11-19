@@ -3,7 +3,7 @@
 {% block title %}Application{% endblock %}
 
 {% block pagecss %}
-    <link rel="stylesheet" href="/services/includes/css/datatables.min.css">
+    <link rel="stylesheet" href="/dashboard/includes/css/datatables.min.css">
 {% endblock %}
 
 {% block pagecontent %}
@@ -84,7 +84,7 @@
 {% endblock %}
 
 {% block pagejs %}
-    <script type="text/javascript" src="/services/includes/js/datatables.min.js"></script>
+    <script type="text/javascript" src="/dashboard/includes/js/datatables.min.js"></script>
     <script type="text/javascript">
         var app_name = $('#application-name');
         var app_status = $('#application-status');
@@ -97,7 +97,7 @@
         var pipeline_export_modal_body = $('#pipeline-export-modal-body');
         $(function() {
             $.ajax({
-                url: "/services/applications/info/" + pipeline_id
+                url: "/dashboard/applications/info/" + pipeline_id
             }).complete(function(data) {
                 pipeline = data['responseJSON'];
                 console.log(pipeline);
@@ -135,7 +135,7 @@
                         tr.removeClass('shown');
                     } else {
                         $.ajax({
-                            url: "/services/applications/nodeinfo/" + inode_id + "/" + resource_id
+                            url: "/dashboard/applications/nodeinfo/" + inode_id + "/" + resource_id
                         }).complete(function(nodeResponse) {
                             var nodeData = nodeResponse['responseJSON'];
                             console.log(nodeData);
@@ -253,7 +253,7 @@
         });
         function exportApp() {
             $.ajax({
-                url: "/services/applications/export/" + pipeline_id
+                url: "/dashboard/applications/export/" + pipeline_id
             }).complete(function(data) {
                 var json = data['responseJSON'];
                 pipeline_export_modal_title.html(pipeline_id);

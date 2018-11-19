@@ -3,7 +3,7 @@
 {% block title %}Applications List{% endblock %}
 
 {% block pagecss %}
-    <link rel="stylesheet" href="/services/includes/css/datatables.min.css">
+    <link rel="stylesheet" href="/dashboard/includes/css/datatables.min.css">
 {% endblock %}
 
 {% block pagecontent %}
@@ -16,7 +16,7 @@
                                 </div>
                                 <div class="header-block pull-right">
                                     <button type="button" class="btn btn-success" onclick="showAddApp()"><i class="fa fa-plus" aria-hidden="true"></i> Submit CADL</button>
-                                    <a href="/services/applications/build" class="btn btn-success"><i class="fa fa-wrench"></i> Build New Application</a>
+                                    <a href="/dashboard/applications/build" class="btn btn-success"><i class="fa fa-wrench"></i> Build New Application</a>
                                 </div>
                             </div>
                             <div class="card-block">
@@ -89,7 +89,7 @@
 {% endblock %}
 
 {% block pagejs %}
-<script type="text/javascript" src="/services/includes/js/datatables.min.js"></script>
+<script type="text/javascript" src="/dashboard/includes/js/datatables.min.js"></script>
 <script type="text/javascript">
     var apps = $('#apps');
     var apps_body = $('#apps tbody');
@@ -112,7 +112,7 @@
     });
     function updateAppList() {
         $.ajax({
-            url: "/services/applications/list"
+            url: "/dashboard/applications/list"
         }).complete(function(data) {
             if (apps_datatable !== null)
                 apps_datatable.destroy();
@@ -121,10 +121,10 @@
             $.each(json.pipelines, function(i, v) {
                 body += '<tr>';
                 //body += '<td><a style="cursor: pointer" onclick="info(\'' + v.pipeline_id + '\');">' + v.pipeline_name + '</a></td>';
-                body += '<td><a href="/services/applications/details/' + v.pipeline_id + '">' + v.pipeline_name + '</a></td>';
+                body += '<td><a href="/dashboard/applications/details/' + v.pipeline_id + '">' + v.pipeline_name + '</a></td>';
                 body += '<td>' + v.tenant_id + '</td>';
                 body += '<td>' + v.status_desc + '</td>';
-                body += '<td><center><a href="/services/applications/delete/' + v.pipeline_id + '" class="btn btn-danger"><i class="fa fa-trash" aria-hidden="true"></i></a></center></td>';
+                body += '<td><center><a href="/dashboard/applications/delete/' + v.pipeline_id + '" class="btn btn-danger"><i class="fa fa-trash" aria-hidden="true"></i></a></center></td>';
                 body += '</tr>';
             });
             apps_body.html(body);
@@ -142,7 +142,7 @@
     }
     function info(id) {
         $.ajax({
-            url: "/services/applications/info/" + id
+            url: "/dashboard/applications/info/" + id
         }).complete(function(data) {
             var json = data['responseJSON'];
             console.log(json);
@@ -165,7 +165,7 @@
         data.tenant_id = tenant;
         data.pipeline = pipeline;
         console.log(data);
-        $.post("/services/applications/add", data, function(result) {
+        $.post("/dashboard/applications/add", data, function(result) {
             console.log(result);
         });
         new_app_modal.modal('hide');

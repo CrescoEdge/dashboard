@@ -6,6 +6,7 @@ import com.mitchellbosecke.pebble.template.PebbleTemplate;
 import io.cresco.library.plugin.PluginService;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Context;
@@ -20,11 +21,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-@Component(service = Object.class,
-        property="dashboard=nfx",
+@Component(//service = Object.class,
+        //property="dashboard=nfx",
+        property = {
+                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
+                //JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
+                JaxrsWhiteboardConstants.JAX_RS_EXTENSION + "=true",
+                "dashboard=nfx"
+        },
         reference = @Reference(
-                name="java.lang.Object",
-                service=Object.class,
+                name="io.cresco.dashboard.filters.AuthenticationFilter",
+                service=javax.ws.rs.container.ContainerRequestFilter.class,
                 target="(dashboard=auth)"
         )
 )

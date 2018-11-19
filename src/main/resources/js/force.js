@@ -284,9 +284,9 @@ function restart() {
             if (mouseup_node === mousedown_node) {
                 if (active_menu == null && selected_node === mouseup_node) {
                     var data = [
-                        {icon: "/services/img/icons/wrench.svg", faicon: "wrench", text: "Edit Plugin", node: d, action: function(d) { editplugin(d); }},
+                        {icon: "/dashboard/img/icons/wrench.svg", faicon: "wrench", text: "Edit Plugin", node: d, action: function(d) { editplugin(d); }},
                         //{icon: "/includes/assets/share-alt.svg", faicon: "share-alt", text: "link", node: d, action: function(d) { linkplugin(d); }},
-                        {icon: "/services/img/icons/trash-alt.svg", faicon: "trash-alt", text: "Delete Plugin", node: d, action: function(d) { deleteplugin(d); }}
+                        {icon: "/dashboard/img/icons/trash-alt.svg", faicon: "trash-alt", text: "Delete Plugin", node: d, action: function(d) { deleteplugin(d); }}
                     ];
 
                     active_menu = new d3.radialMenu().radius(node_size + 1)

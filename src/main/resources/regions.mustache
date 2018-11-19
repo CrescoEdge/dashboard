@@ -78,7 +78,7 @@
             };
             $(function() {
                 $.ajax({
-                    url: "/services/regions/list",
+                    url: "/dashboard/regions/list",
                     success: function(data) {
                         let body = '';
                         $.each(data.regions, function (i, v) {
@@ -108,7 +108,7 @@
             });
             function resources(region) {
                 $.ajax({
-                    url: "/services/regions/resources/" + region,
+                    url: "/dashboard/regions/resources/" + region,
                     success: function (json) {
                         const disk_avail = parseInt(json.regionresourceinfo[0].disk_available);
                         const disk_total = parseInt(json.regionresourceinfo[0].disk_total);

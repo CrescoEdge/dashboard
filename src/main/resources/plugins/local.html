@@ -114,7 +114,7 @@
         var pluginConfiguration = $('#newPluginConfig');
         $(function () {
             $.ajax({
-                url: "/services/plugins/list"
+                url: "/dashboard/plugins/list"
             }).done(function(data) {
                 var pluginsHTML = '';
                 $.each(data, function(i, v) {

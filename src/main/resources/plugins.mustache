@@ -90,7 +90,7 @@
     const plugin_info_modal_body = $('#plugin-info-modal-body');
     function plugininfo(region, agent, plugin) {
         $.ajax({
-            url: "/services/plugins/info/" + region + "/" + agent + "/" + plugin,
+            url: "/dashboard/plugins/info/" + region + "/" + agent + "/" + plugin,
             success: function(json) {
                 plugin_info_modal_title.html(region + "<br>" + agent + "<br>" + plugin);
                 plugin_info_modal_body.html('<pre>' + syntaxHighlight(JSON.stringify(json, undefined, 4)) + '</pre>');
@@ -103,7 +103,7 @@
     }
     $(function() {
         $.ajax({
-            url: "/services/regions/list/",
+            url: "/dashboard/regions/list/",
             success: function(json) {
                 let options = '<option value="" selected>All</option>';
                 $.each(json.regions, function (i, v) {
@@ -128,7 +128,7 @@
                 agents.prop('disabled', true);
                 agents_row.css('display', 'none');
                 $.ajax({
-                    url: "/services/plugins/list/",
+                    url: "/dashboard/plugins/list/",
                     success: function(json) {
                         let body = '';
                         $.each(json.plugins, function (i, v) {
@@ -149,7 +149,7 @@
                 return;
             }
             $.ajax({
-                url: "/services/plugins/list/" + region,
+                url: "/dashboard/plugins/list/" + region,
                 success: function(json) {
                     let body = '';
                     $.each(json.plugins, function (i, v) {
@@ -168,7 +168,7 @@
                 }
             });
             $.ajax({
-                url: "/services/agents/list/" + region,
+                url: "/dashboard/agents/list/" + region,
                 success: function(json) {
                     let options = '<option value="">All</option>';
                     $.each(json.agents, function (i, v) {
@@ -193,7 +193,7 @@
                 return;
             }
             $.ajax({
-                url: "/services/plugins/list/" + region + "/" + agent,
+                url: "/dashboard/plugins/list/" + region + "/" + agent,
                 success: function(json) {
                     let body = '';
                     $.each(json.plugins, function (i, v) {

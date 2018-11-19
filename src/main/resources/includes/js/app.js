@@ -1294,10 +1294,10 @@ $(function () {
 	function setThemeState() {
 		// set theme type
 		if (themeSettings.themeName) {
-			$styleLink.attr('href', '/services/includes/css/app-' + themeSettings.themeName + '.css');
+			$styleLink.attr('href', '/dashboard/includes/css/app-' + themeSettings.themeName + '.css');
 		}
 		else {
-			$styleLink.attr('href', '/services/includes/css/app.css');
+			$styleLink.attr('href', '/dashboard/includes/css/app.css');
 		}
 
 		// App classes

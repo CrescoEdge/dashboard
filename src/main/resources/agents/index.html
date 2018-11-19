@@ -3,7 +3,7 @@
 {% block title %}Agents{% endblock %}
 
 {% block pagecss %}
-    <link rel="stylesheet" href="/services/includes/css/datatables.min.css">
+    <link rel="stylesheet" href="/dashboard/includes/css/datatables.min.css">
 {% endblock %}
 
 {% block pagecontent %}
@@ -66,7 +66,7 @@
 {% endblock %}
 
 {% block pagejs %}
-    <script type="text/javascript" src="/services/includes/js/datatables.min.js"></script>
+    <script type="text/javascript" src="/dashboard/includes/js/datatables.min.js"></script>
     <script type="text/javascript">
         var regions = $('#regions');
         var agents_row = $('#agents-row');
@@ -77,7 +77,7 @@
         var agent_info_modal_body = $('#agent-info-modal-body');
         $(function() {
             $.ajax({
-                url: "/services/regions/list"
+                url: "/dashboard/regions/list"
             }).complete(function(data) {
                 var json = data['responseJSON'];
                 var options = '<option value="" selected>All</option>';
@@ -97,7 +97,7 @@
                     return;
                 }
                 $.ajax({
-                    url: "/services/agents/list/" + region
+                    url: "/dashboard/agents/list/" + region
                 }).complete(function(data) {
                     var json = data['responseJSON'];
                     var body = '';
@@ -151,7 +151,7 @@
         });
         function resources(region, agent) {
             $.ajax({
-                url: "/services/agents/resources/" + region + "/" + agent
+                url: "/dashboard/agents/resources/" + region + "/" + agent
             }).complete(function(data) {
                 agent_info_modal_title.html("Resources: <br>" + region + "<br>" + agent);
                 var json = data['responseJSON'];

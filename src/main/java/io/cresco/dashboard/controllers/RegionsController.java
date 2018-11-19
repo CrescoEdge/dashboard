@@ -16,6 +16,7 @@ import io.cresco.library.utilities.CLogger;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.swing.plaf.synth.Region;
 import javax.ws.rs.*;
@@ -29,16 +30,25 @@ import java.util.Map;
 
 
 @Component(service = Object.class,
-        property="dashboard=regions",
+        //property="dashboard=regions",
+
+        property = {
+                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
+                JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
+                "dashboard=regions"
+        },
+
         reference = @Reference(
-                name="java.lang.Object",
-                service=Object.class,
+                name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
+                service=javax.ws.rs.ext.ExceptionMapper.class,
+                //name="java.lang.Object",
+                //service=Object.class,
                 target="(dashboard=nfx)",
                 policy=ReferencePolicy.STATIC
         )
 )
 
-@Path("regions")
+//@Path("/regions")
 public class RegionsController {
 
     private PluginBuilder plugin;
@@ -63,6 +73,7 @@ public class RegionsController {
     }
 
     @GET
+    @Path("/dashboard/regions")
     @Produces(MediaType.TEXT_HTML)
     public Response index(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {
@@ -91,7 +102,7 @@ public class RegionsController {
     }
 
     @GET
-    @Path("details/{region}")
+    @Path("/dashboard/regions/details/{region}")
     @Produces(MediaType.TEXT_HTML)
     public Response details(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID,
                             @PathParam("region") String region) {
@@ -123,7 +134,7 @@ public class RegionsController {
     }
 
     @GET
-    @Path("list")
+    @Path("/dashboard/regions/list")
     @Produces(MediaType.APPLICATION_JSON)
     public Response list() {
         logger.trace("Call to list()");
@@ -152,7 +163,7 @@ public class RegionsController {
     }
 
     @GET
-    @Path("resources/{region}")
+    @Path("/dashboard/regions/resources/{region}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response resources(@PathParam("region") String region) {
         logger.trace("Call to resources({})", region);

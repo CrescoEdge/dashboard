@@ -11,6 +11,7 @@ import io.cresco.library.plugin.PluginService;
 import io.cresco.library.utilities.CLogger;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.annotation.security.PermitAll;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -30,15 +31,34 @@ import java.util.Calendar;
 import java.util.List;
 
 
+/*
 @Component(service = Object.class,
-        property="dashboard=auth",
+        property = {
+                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
+                JaxrsWhiteboardConstants.JAX_RS_EXTENSION + "=true",
+                "dashboard=auth"
+        },
         reference = @Reference(
                 name="io.cresco.library.plugin.PluginService",
                 service=PluginService.class,
                 target="(dashboard=core)"
         )
 )
+*/
 
+@Component(
+        //service = Object.class,
+        property = {
+                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
+                JaxrsWhiteboardConstants.JAX_RS_EXTENSION + "=true",
+                "dashboard=auth"
+        },
+        reference = @Reference(
+                name="io.cresco.library.plugin.PluginService",
+                service=PluginService.class,
+                target="(dashboard=core)"
+        )
+)
 @Provider
 public class AuthenticationFilter implements ContainerRequestFilter {
     public static final String SESSION_COOKIE_NAME = "crescoAgentSessionID";
@@ -71,7 +91,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             logger = plugin.getLogger(AuthenticationFilter.class.getName(), CLogger.Level.Info);
 
 
-            URI logout_uri = new URI("/services/logout");
+            URI logout_uri = new URI("/dashboard/logout");
             REDIRECT_LOGOUT = Response.seeOther(logout_uri).build();
         } catch (URISyntaxException e) {
             REDIRECT_LOGOUT = Response.serverError().build();
@@ -80,7 +100,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     private Response toLogin(NewCookie redirectCookie) {
         try {
-            URI login_uri = new URI("/services/login");
+            URI login_uri = new URI("/dashboard/login");
             return Response.seeOther(login_uri).cookie(redirectCookie).build();
         } catch (URISyntaxException e) {
             return Response.serverError().build();
@@ -117,7 +137,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             Cookie sessionCookie = requestContext.getCookies().get(SESSION_COOKIE_NAME);
             if (sessionCookie == null) {
-                NewCookie redirectCookie = new NewCookie(RootController.LOGIN_REDIRECT_COOKIE_NAME, "/services/" + requestContext.getUriInfo().getPath(), null, null, null, 60 * 60, false);
+                NewCookie redirectCookie = new NewCookie(RootController.LOGIN_REDIRECT_COOKIE_NAME, "/" + requestContext.getUriInfo().getPath(), null, null, null, 60 * 60, false);
                 requestContext.abortWith(toLogin(redirectCookie));
                 return;
             }

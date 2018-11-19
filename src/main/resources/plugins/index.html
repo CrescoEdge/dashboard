@@ -3,7 +3,7 @@
 {% block title %}Agents{% endblock %}
 
 {% block pagecss %}
-    <link rel="stylesheet" href="/services/includes/css/datatables.min.css">
+    <link rel="stylesheet" href="/dashboard/includes/css/datatables.min.css">
 {% endblock %}
 
 {% block pagecontent %}
@@ -66,7 +66,7 @@
 {% endblock %}
 
 {% block pagejs %}
-    <script type="text/javascript" src="/services/includes/js/datatables.min.js"></script>
+    <script type="text/javascript" src="/dashboard/includes/js/datatables.min.js"></script>
     <script type="text/javascript">
         var regions = $('#regions');
         var agents_row = $('#agents-row');
@@ -91,7 +91,7 @@
         }
         $(function() {
             $.ajax({
-                url: "/services/regions/list/"
+                url: "/dashboard/regions/list/"
             }).complete(function(data) {
                 var json = data['responseJSON'];
                 var options = '<option value="" selected>All</option>';
@@ -115,7 +115,7 @@
                     agents.prop('disabled', true);
                     agents_row.css('display', 'none');
                     $.ajax({
-                        url: "/services/plugins/list/"
+                        url: "/dashboard/plugins/list/"
                     }).complete(function(data) {
                         var json = data['responseJSON'];
                         var body = '';
@@ -135,7 +135,7 @@
                     return;
                 }
                 $.ajax({
-                    url: "/services/plugins/list/" + region
+                    url: "/dashboard/plugins/list/" + region
                 }).complete(function(data) {
                     var json = data['responseJSON'];
                     var body = '';
@@ -153,7 +153,7 @@
                     console.error(data);
                 });
                 $.ajax({
-                    url: "/services/agents/list/" + region
+                    url: "/dashboard/agents/list/" + region
                 }).complete(function(data) {
                     var json = data['responseJSON'];
                     var options = '<option value="">All</option>';
@@ -177,7 +177,7 @@
                     return;
                 }
                 $.ajax({
-                    url: "/services/plugins/list/" + region + "/" + agent
+                    url: "/dashboard/plugins/list/" + region + "/" + agent
                 }).complete(function(data) {
                     var json = data['responseJSON'];
                     var body = '';

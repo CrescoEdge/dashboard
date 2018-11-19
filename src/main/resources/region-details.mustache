@@ -2,7 +2,7 @@
 <!-- Breadcrumb-->
 <ol class="breadcrumb">
     <li class="breadcrumb-item">Home</li>
-    <li class="breadcrumb-item"><a href="/services/regions">Regions</a></li>
+    <li class="breadcrumb-item"><a href="/dashboard/regions">Regions</a></li>
     <li class="breadcrumb-item active">{{ region }}</li>
     <!-- Breadcrumb Menu-->
     <li class="breadcrumb-menu d-md-down-none">
@@ -66,7 +66,7 @@
     });
     function resources(region) {
         $.ajax({
-            url: "/services/regions/resources/" + region,
+            url: "/dashboard/regions/resources/" + region,
             success: function (json) {
                 const disk_avail = parseInt(json.regionresourceinfo[0].disk_available);
                 const disk_total = parseInt(json.regionresourceinfo[0].disk_total);

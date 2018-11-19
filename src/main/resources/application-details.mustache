@@ -2,7 +2,7 @@
 <!-- Breadcrumb-->
 <ol class="breadcrumb">
     <li class="breadcrumb-item">Home</li>
-    <li class="breadcrumb-item"><a href="/services/applications">Applications</a></li>
+    <li class="breadcrumb-item"><a href="/dashboard/applications">Applications</a></li>
     <li class="breadcrumb-item active">{{ app_id }}</li>
     <!-- Breadcrumb Menu-->
     <li class="breadcrumb-menu d-md-down-none">
@@ -89,10 +89,10 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" src="/services/js/d3.v3.min.js"></script>
-<script type="text/javascript" src="/services/js/context-menu.js"></script>
-<script type="text/javascript" src="/services/js/menu.js"></script>
-<script type="text/javascript" src="/services/js/app-details.js"></script>
+<script type="text/javascript" src="/dashboard/js/d3.v3.min.js"></script>
+<script type="text/javascript" src="/dashboard/js/context-menu.js"></script>
+<script type="text/javascript" src="/dashboard/js/menu.js"></script>
+<script type="text/javascript" src="/dashboard/js/app-details.js"></script>
 <script type="text/javascript">
     var app_name = $('#application-name');
     var app_status = $('#application-status');
@@ -105,7 +105,7 @@
     var pipeline_export_modal_body = $('#pipeline-export-modal-body');
     $(function() {
         $.ajax({
-            url: "/services/applications/info/" + pipeline_id,
+            url: "/dashboard/applications/info/" + pipeline_id,
             success: function(data) {
                 pipeline = data;
                 app_name.html(pipeline.pipeline_name);
@@ -142,7 +142,7 @@
                         tr.removeClass('shown');
                     } else {
                         $.ajax({
-                            url: "/services/applications/nodeinfo/" + inode_id + "/" + resource_id,
+                            url: "/dashboard/applications/nodeinfo/" + inode_id + "/" + resource_id,
                             success: function (nodeData) {
                                 //var nodeData = nodeResponse['responseJSON'];
                                 console.log(nodeData);
@@ -282,7 +282,7 @@
     });
     function exportApp() {
         $.ajax({
-            url: "/services/applications/export/" + pipeline_id,
+            url: "/dashboard/applications/export/" + pipeline_id,
             success: function(json) {
                 //var json = data['responseJSON'];
                 pipeline_export_modal_title.html(pipeline_id);
@@ -297,7 +297,7 @@
 
     function showStatus() {
         $.ajax({
-            url: "/services/applications/info/" + pipeline_id,
+            url: "/dashboard/applications/info/" + pipeline_id,
             success: function(json) {
                 $.each(json.nodes, (i, v) => {
                     addExistingNode(v);

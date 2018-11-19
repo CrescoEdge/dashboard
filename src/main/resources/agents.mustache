@@ -97,7 +97,7 @@
     };
     $(function() {
         $.ajax({
-            url: "/services/regions/list",
+            url: "/dashboard/regions/list",
             success: function(json) {
                 var options = '<option value="" selected>All</option>';
                 $.each(json.regions, function (i, v) {
@@ -118,7 +118,7 @@
                 return;
             }
             $.ajax({
-                url: "/services/agents/list/" + region,
+                url: "/dashboard/agents/list/" + region,
                 success: function(json) {
                     var body = '';
                     $.each(json.agents, function (i, v) {
@@ -173,7 +173,7 @@
     });
     function resources(region, agent) {
         $.ajax({
-            url: "/services/agents/resources/" + region + "/" + agent,
+            url: "/dashboard/agents/resources/" + region + "/" + agent,
             success: function(json) {
                 agent_info_modal_title.html("Resources: <br>" + region + "<br>" + agent);
                 var agentJSON = JSON.parse(json.agentresourceinfo[0].perf);

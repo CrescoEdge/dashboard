@@ -9,6 +9,7 @@ import io.cresco.library.utilities.CLogger;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -30,16 +31,25 @@ import java.io.StringWriter;
 */
 
 @Component(service = Object.class,
-        property="dashboard=global",
+        //property="dashboard=global",
+
+        property = {
+                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
+                JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
+                "dashboard=global"
+        },
+
         reference = @Reference(
-                name="java.lang.Object",
-                service=Object.class,
+                name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
+                service=javax.ws.rs.ext.ExceptionMapper.class,
+                //name="java.lang.Object",
+                //service=Object.class,
                 target="(dashboard=nfx)",
                 policy=ReferencePolicy.STATIC
         )
 )
 
-@Path("global")
+//@Path("global")
 public class GlobalController {
     //private static PluginBuilder plugin = null;
     //private static CLogger logger = null;
@@ -74,7 +84,7 @@ public class GlobalController {
     }
 
     @GET
-    @Path("resources")
+    @Path("/dashboard/global/resources")
     @Produces(MediaType.APPLICATION_JSON)
     public Response resources() {
         logger.trace("Call to resources()");

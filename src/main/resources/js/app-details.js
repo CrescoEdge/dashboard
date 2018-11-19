@@ -282,9 +282,9 @@ function restart() {
             if (mouseup_node === mousedown_node) {
                 if (active_menu == null && selected_node === mouseup_node) {
                     var data = [
-                        {icon: "/services/img/icons/sitemap.svg", favicon: "wrench", text: "Region Status", node: d, action: function(d) { window.location.href = '/services/regions/details/${d.data.node.params.region}'; }},
-                        {icon: "/services/img/icons/microchip.svg", favicon: "wrench", text: "Agent Status", node: d, action: function(d) { window.location.href = '/services/agents/details/${d.data.node.params.region}/${d.data.node.params.agent}'; }},
-                        {icon: "/services/img/icons/plug.svg", favicon: "trash-alt", text: "Plugin Status", node: d, action: function(d) { window.location.href = '/services/plugins/details/${d.data.node.params.region}/${d.data.node.params.agent}/${d.data.node.params.plugin}'; }}
+                        {icon: "/dashboard/img/icons/sitemap.svg", favicon: "wrench", text: "Region Status", node: d, action: function(d) { window.location.href = '/dashboard/regions/details/${d.data.node.params.region}'; }},
+                        {icon: "/dashboard/img/icons/microchip.svg", favicon: "wrench", text: "Agent Status", node: d, action: function(d) { window.location.href = '/dashboard/agents/details/${d.data.node.params.region}/${d.data.node.params.agent}'; }},
+                        {icon: "/dashboard/img/icons/plug.svg", favicon: "trash-alt", text: "Plugin Status", node: d, action: function(d) { window.location.href = '/dashboard/plugins/details/${d.data.node.params.region}/${d.data.node.params.agent}/${d.data.node.params.plugin}'; }}
                     ];
 
                     active_menu = new d3.radialMenu().radius(node_size + 1)
@@ -382,7 +382,7 @@ function addExistingNode(data) {
     restart();
     if (node.params.inode_id !== 'undefined' && node.params.resource_id !== 'undefined') {
         $.ajax({
-            url: "/services/applications/nodeinfo/" + node.params.inode_id + "/" + node.params.resource_id,
+            url: "/dashboard/applications/nodeinfo/" + node.params.inode_id + "/" + node.params.resource_id,
             success: function (nodeData) {
                 //console.log(nodeData);
                 node.params.region = nodeData.isassignmentinfo.region;

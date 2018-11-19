@@ -13,9 +13,9 @@ import io.cresco.dashboard.services.AlertService;
 import io.cresco.dashboard.services.LoginSessionService;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.utilities.CLogger;
-import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferencePolicy;
+
 
 import javax.annotation.security.PermitAll;
 import javax.ws.rs.*;
@@ -33,17 +33,28 @@ import java.util.List;
 import java.util.Map;
 
 
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
+
+
 @Component(service = Object.class,
-        property="dashboard=root",
+
+        property = {
+                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
+                JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
+                //JaxrsWhiteboardConstants.JAX_RS_APPLICATION_BASE + "=/cresco",
+                "dashboard=root"
+        },
         reference = @Reference(
-                name="java.lang.Object",
-                service=Object.class,
+                name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
+                service=javax.ws.rs.ext.ExceptionMapper.class,
+                //name="java.lang.Object",
+                //service=Object.class,
                 target="(dashboard=nfx)",
-                policy=ReferencePolicy.STATIC
+                policy= ReferencePolicy.STATIC
         )
 )
 
-@Path("/")
 public class RootController {
     private PluginBuilder plugin;
     private CLogger logger;
@@ -70,6 +81,7 @@ public class RootController {
 
 
     @GET
+    @Path("/dashboard")
     @Produces(MediaType.TEXT_HTML)
     public Response index(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {
@@ -104,7 +116,7 @@ public class RootController {
 
     @PermitAll
     @GET
-    @Path("login")
+    @Path("/dashboard/login")
     @Produces(MediaType.TEXT_HTML)
     public Response getLogin(@CookieParam(LOGIN_REDIRECT_COOKIE_NAME) String redirect,
                              @CookieParam(LOGIN_ERROR_COOKIE_NAME) String error) {
@@ -119,7 +131,7 @@ public class RootController {
             if (redirect != null)
                 context.put("redirect", redirect);
             else
-                context.put("redirect", "/services/");
+                context.put("redirect", "/dashboard/");
             if (error != null)
                 context.put("error", error);
 
@@ -140,7 +152,7 @@ public class RootController {
 
     @PermitAll
     @POST
-    @Path("login")
+    @Path("/dashboard/login")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public Response postLogin(@FormParam("username") String username,
                               @FormParam("password") String password,
@@ -151,13 +163,13 @@ public class RootController {
                 if (username == null || username.equals("") || !username.toLowerCase().trim().equals("admin") ||
                         password == null || password.equals("") || !password.toLowerCase().trim().equals("cresco")) {
                     NewCookie errorCookie = new NewCookie(LOGIN_ERROR_COOKIE_NAME, "Invalid Username or Password!", null, null, null, 60 * 60, false);
-                    return Response.seeOther(new URI("/services/login")).cookie(errorCookie).build();
+                    return Response.seeOther(new URI("/dashboard/login")).cookie(errorCookie).build();
                 }
             } else {
                 if (username == null || username.equals("") || !username.toLowerCase().trim().equals(plugin.getConfig().getStringParam("username", "admin").toLowerCase().trim()) ||
                         password == null || password.equals("") || !password.toLowerCase().trim().equals(plugin.getConfig().getStringParam("password", "cresco").toLowerCase().trim())) {
                     NewCookie errorCookie = new NewCookie(LOGIN_ERROR_COOKIE_NAME, "Invalid Username or Password!", null, null, null, 60 * 60, false);
-                    return Response.seeOther(new URI("/services/login")).cookie(errorCookie).build();
+                    return Response.seeOther(new URI("/dashboard/login")).cookie(errorCookie).build();
                 }
             }
             LoginSession loginSession = LoginSessionService.create(username.trim(), rememberMe != null);
@@ -171,19 +183,19 @@ public class RootController {
 
     @PermitAll
     @GET
-    @Path("logout")
+    @Path("/dashboard/logout")
     public Response getLogout(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {
             LoginSessionService.delete(sessionID);
             NewCookie deleteSession = new NewCookie(AuthenticationFilter.SESSION_COOKIE_NAME, null, null, null, null, 0, false);
-            return Response.seeOther(new URI("/services/login")).cookie(deleteSession).build();
+            return Response.seeOther(new URI("/dashboard/login")).cookie(deleteSession).build();
         } catch (URISyntaxException e) {
             return Response.serverError().build();
         }
     }
 
     @GET
-    @Path("notifications")
+    @Path("/dashboard/notifications")
     @Produces(MediaType.APPLICATION_JSON)
     public Response list(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {
@@ -216,7 +228,7 @@ public class RootController {
 
     @PermitAll
     @GET
-    @Path("/includes/{subResources:.*}")
+    @Path("/dashboard/includes/{subResources:.*}")
     @Produces(MediaType.TEXT_HTML)
     public Response getIncludes(@PathParam("subResources") String subResources)
     {
@@ -255,7 +267,7 @@ public class RootController {
 
     @PermitAll
     @GET
-    @Path("/css/{subResources:.*}")
+    @Path("/dashboard/css/{subResources:.*}")
     @Produces(MediaType.TEXT_HTML)
     public Response getCSS(@PathParam("subResources") String subResources)
     {
@@ -295,7 +307,7 @@ public class RootController {
 
     @PermitAll
     @GET
-    @Path("/js/{subResources:.*}")
+    @Path("/dashboard/js/{subResources:.*}")
     @Produces(MediaType.TEXT_HTML)
     public Response getJS(@PathParam("subResources") String subResources)
     {
@@ -335,7 +347,7 @@ public class RootController {
 
     @PermitAll
     @GET
-    @Path("/img/{subResources:.*}")
+    @Path("/dashboard/img/{subResources:.*}")
     @Produces(MediaType.TEXT_HTML)
     public Response getImg(@PathParam("subResources") String subResources)
     {
@@ -373,7 +385,7 @@ public class RootController {
     }
     @PermitAll
     @GET
-    @Path("/vendors/{subResources:.*}")
+    @Path("/dashboard/vendors/{subResources:.*}")
     @Produces(MediaType.TEXT_HTML)
     public Response getVendors(@PathParam("subResources") String subResources)
     {
