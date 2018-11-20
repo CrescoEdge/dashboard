@@ -16,6 +16,7 @@ import io.cresco.library.utilities.CLogger;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ServiceScope;
 import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.swing.plaf.synth.Region;
@@ -29,9 +30,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-@Component(service = Object.class,
-        //property="dashboard=regions",
 
+@Component(service = Object.class,
+        scope=ServiceScope.PROTOTYPE,
         property = {
                 JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
                 JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
@@ -41,14 +42,12 @@ import java.util.Map;
         reference = @Reference(
                 name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
                 service=javax.ws.rs.ext.ExceptionMapper.class,
-                //name="java.lang.Object",
-                //service=Object.class,
                 target="(dashboard=nfx)",
                 policy=ReferencePolicy.STATIC
         )
 )
 
-//@Path("/regions")
+
 public class RegionsController {
 
     private PluginBuilder plugin;
@@ -56,13 +55,6 @@ public class RegionsController {
 
     public RegionsController() {
 
-        while(Plugin.pluginBuilder == null) {
-            try {
-                Thread.sleep(100);
-            } catch(Exception ex) {
-                ex.printStackTrace();
-            }
-        }
 
         if(plugin == null) {
             if(Plugin.pluginBuilder != null) {

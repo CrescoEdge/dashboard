@@ -34,15 +34,16 @@ import java.util.Map;
 
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ServiceScope;
 import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 
-@Component(service = Object.class,
 
+@Component(service = Object.class,
+        scope= ServiceScope.PROTOTYPE,
         property = {
                 JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
                 JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
-                //JaxrsWhiteboardConstants.JAX_RS_APPLICATION_BASE + "=/cresco",
                 "dashboard=root"
         },
         reference = @Reference(
@@ -53,7 +54,10 @@ import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
                 target="(dashboard=nfx)",
                 policy= ReferencePolicy.STATIC
         )
+
 )
+
+
 
 public class RootController {
     private PluginBuilder plugin;
@@ -63,13 +67,7 @@ public class RootController {
     public static final String LOGIN_REDIRECT_COOKIE_NAME = "crescoAgentLoginRedirect";
 
     public RootController() {
-        while(Plugin.pluginBuilder == null) {
-            try {
-                Thread.sleep(100);
-            } catch(Exception ex) {
-                ex.printStackTrace();
-            }
-        }
+
 
         if(plugin == null) {
             if(Plugin.pluginBuilder != null) {

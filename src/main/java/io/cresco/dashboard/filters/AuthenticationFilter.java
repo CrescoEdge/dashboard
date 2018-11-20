@@ -11,6 +11,7 @@ import io.cresco.library.plugin.PluginService;
 import io.cresco.library.utilities.CLogger;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ServiceScope;
 import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.annotation.security.PermitAll;
@@ -30,24 +31,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-
-/*
-@Component(service = Object.class,
-        property = {
-                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
-                JaxrsWhiteboardConstants.JAX_RS_EXTENSION + "=true",
-                "dashboard=auth"
-        },
-        reference = @Reference(
-                name="io.cresco.library.plugin.PluginService",
-                service=PluginService.class,
-                target="(dashboard=core)"
-        )
-)
-*/
-
 @Component(
-        //service = Object.class,
+        scope= ServiceScope.PROTOTYPE,
         property = {
                 JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
                 JaxrsWhiteboardConstants.JAX_RS_EXTENSION + "=true",
@@ -58,7 +43,9 @@ import java.util.List;
                 service=PluginService.class,
                 target="(dashboard=core)"
         )
+
 )
+
 @Provider
 public class AuthenticationFilter implements ContainerRequestFilter {
     public static final String SESSION_COOKIE_NAME = "crescoAgentSessionID";
@@ -80,19 +67,18 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         try {
 
-            while(Plugin.pluginBuilder == null) {
-                try {
-                    Thread.sleep(100);
-                } catch(Exception ex) {
-                    ex.printStackTrace();
+
+            if(plugin == null) {
+                if(Plugin.pluginBuilder != null) {
+                    plugin = Plugin.pluginBuilder;
+                    logger = plugin.getLogger(AuthenticationFilter.class.getName(), CLogger.Level.Info);
                 }
             }
-            plugin = Plugin.pluginBuilder;
-            logger = plugin.getLogger(AuthenticationFilter.class.getName(), CLogger.Level.Info);
-
 
             URI logout_uri = new URI("/dashboard/logout");
             REDIRECT_LOGOUT = Response.seeOther(logout_uri).build();
+
+
         } catch (URISyntaxException e) {
             REDIRECT_LOGOUT = Response.serverError().build();
         }
@@ -114,16 +100,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             Method method = resourceInfo.getResourceMethod();
 
-/*
-            String requestPath = requestContext.getUriInfo().getRequestUri().getPath();
-
-            System.out.println("Request Path: " + requestPath);
-
-            System.out.println("TYPE: " + method.getAnnotatedReturnType().getType().getTypeName());
-            for(Annotation a : method.getDeclaredAnnotations()) {
-                System.out.println("A: " + a.toString());
-            }
-            */
 
             if (method.isAnnotationPresent(PermitAll.class)) {
                 return;

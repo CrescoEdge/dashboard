@@ -16,6 +16,7 @@ import io.cresco.library.utilities.CLogger;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ServiceScope;
 import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.ws.rs.*;
@@ -29,8 +30,7 @@ import java.util.Map;
 
 
 @Component(service = Object.class,
-        //property="dashboard=applications",
-
+        scope= ServiceScope.PROTOTYPE,
         property = {
                 JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
                 JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
@@ -39,30 +39,18 @@ import java.util.Map;
         reference = @Reference(
                 name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
                 service=javax.ws.rs.ext.ExceptionMapper.class,
-                //name="java.lang.Object",
-                //service=Object.class,
                 target="(dashboard=nfx)",
                 policy=ReferencePolicy.STATIC
         )
 )
 
-//@Path("applications")
 public class ApplicationsController {
-    //private static PluginBuilder plugin = null;
-    //private static CLogger logger = null;
 
     private PluginBuilder plugin;
     private CLogger logger;
 
     public ApplicationsController() {
 
-        while(Plugin.pluginBuilder == null) {
-            try {
-                Thread.sleep(100);
-            } catch(Exception ex) {
-                ex.printStackTrace();
-            }
-        }
 
         if(plugin == null) {
             if(Plugin.pluginBuilder != null) {
@@ -72,13 +60,6 @@ public class ApplicationsController {
         }
     }
 
-    public static void connectPlugin(PluginBuilder inPlugin) {
-        //plugin = inPlugin;
-        //logger = plugin.getLogger(ApplicationsController.class.getName(),CLogger.Level.Info);
-        //logger.info("Set STATIC logger : applications");
-        //logger = new CLogger(ApplicationsController.class, plugin.getMsgOutQueue(), plugin.getRegion(),
-        //        plugin.getAgent(), plugin.getPluginID(), CLogger.Level.Trace);
-    }
 
     @GET
     @Path("/dashboard/applications")

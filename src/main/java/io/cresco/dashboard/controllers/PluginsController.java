@@ -21,6 +21,7 @@ import io.cresco.library.utilities.CLogger;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ServiceScope;
 import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import java.lang.reflect.Type;
@@ -29,23 +30,12 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.*;
-import java.net.URL;
 import java.nio.file.Paths;
 import java.util.*;
 
-/*
-@Component(service = Object.class,
-        reference = @Reference(
-                name="java.lang.Object",
-                service=Object.class,
-                target="(dashboard=root)"
-        )
-)
-*/
 
 @Component(service = Object.class,
-        //property="dashboard=plugins",
-
+        scope= ServiceScope.PROTOTYPE,
         property = {
                 JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
                 JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
@@ -55,18 +45,12 @@ import java.util.*;
         reference = @Reference(
                 name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
                 service=javax.ws.rs.ext.ExceptionMapper.class,
-                //name="java.lang.Object",
-                //service=Object.class,
                 target="(dashboard=nfx)",
                 policy=ReferencePolicy.STATIC
         )
 )
 
-//@Path("plugins")
 public class PluginsController {
-    //private static PluginBuilder plugin = null;
-    //private static CLogger logger = null;
-    //private static Gson gson;
     private PluginBuilder plugin;
     private CLogger logger;
     private Gson gson;
@@ -75,14 +59,6 @@ public class PluginsController {
 
     public PluginsController()  {
 
-
-        while(Plugin.pluginBuilder == null) {
-            try {
-                Thread.sleep(100);
-            } catch(Exception ex) {
-                ex.printStackTrace();
-            }
-        }
 
         if(plugin == null) {
             if(Plugin.pluginBuilder != null) {
@@ -96,13 +72,6 @@ public class PluginsController {
         }
     }
 
-    public static void connectPlugin(PluginBuilder inPlugin) {
-        //plugin = inPlugin;
-        //logger = plugin.getLogger(PluginsController.class.getName(),CLogger.Level.Info);
-        //logger = new CLogger(PluginsController.class, plugin.getMsgOutQueue(), plugin.getRegion(), plugin.getAgent(),
-        //        plugin.getPluginID(), CLogger.Level.Trace);
-//        gson = new Gson();
-    }
 
     @GET
     @Path("/dashboard/plugins")

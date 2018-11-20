@@ -127,7 +127,6 @@ public class Plugin implements PluginService {
                 }
 
                 pluginBuilder.setIsActive(true);
-
             }
             return true;
 

@@ -17,10 +17,7 @@ import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.plugin.PluginService;
 import io.cresco.library.utilities.CLogger;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferenceCardinality;
-import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.*;
 import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.ws.rs.*;
@@ -37,20 +34,8 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 
-/*
 @Component(service = Object.class,
-        reference = @Reference(
-                name="java.lang.Object",
-                service=Object.class,
-                target="(dashboard=root)"
-        )
-)
-*/
-
-
-@Component(service = Object.class,
-        //property="dashboard=agents",
-
+        scope= ServiceScope.PROTOTYPE,
         property = {
                 JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
                 JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
@@ -60,29 +45,17 @@ import java.util.concurrent.ThreadLocalRandom;
         reference = @Reference(
                 name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
                 service=javax.ws.rs.ext.ExceptionMapper.class,
-                //name="java.lang.Object",
-                //service=Object.class,
                 target="(dashboard=nfx)",
                 policy=ReferencePolicy.STATIC
         )
 )
 
 
-//@Path("agents")
 public class AgentsController {
     private PluginBuilder plugin;
     private CLogger logger;
-    //private static Gson gson = gson = new Gson();
 
     public AgentsController() {
-
-        while(Plugin.pluginBuilder == null) {
-            try {
-                Thread.sleep(100);
-            } catch(Exception ex) {
-                ex.printStackTrace();
-            }
-        }
 
         if(plugin == null) {
             if(Plugin.pluginBuilder != null) {
@@ -90,13 +63,6 @@ public class AgentsController {
                 logger = plugin.getLogger(AgentsController.class.getName(), CLogger.Level.Info);
             }
         }
-    }
-    public static void connectPlugin(PluginBuilder inPlugin) {
-        //plugin = inPlugin;
-        //logger = plugin.getLogger(AgentsController.class.getName(), CLogger.Level.Trace);
-        //gson = new Gson();
-
-
     }
 
     @GET
