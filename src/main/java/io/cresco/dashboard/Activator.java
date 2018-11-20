@@ -19,6 +19,9 @@ public class Activator implements BundleActivator {
         System.setProperty("com.mchange.v2.log.MLog", "com.mchange.v2.log.FallbackMLog");
         System.setProperty("com.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL", "WARNING");
 
+
+        System.setProperty("org.apache.aries.logging.provider", "slf4j");
+
         /*
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
