@@ -58,6 +58,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     public static void connectPlugin(PluginBuilder plugin) {
         //logger = plugin.getLogger(AuthenticationFilter.class.getName(),CLogger.Level.Info);
+
     }
 
     @Context
