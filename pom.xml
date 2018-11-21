@@ -49,19 +49,17 @@
 
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.glassfish.jersey</groupId>
-                <artifactId>jersey-bom</artifactId>
-                <version>${jersey.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+
 
     <dependencies>
+
+        <!-- https://mvnrepository.com/artifact/org.apache.aries.jax.rs/org.apache.aries.jax.rs.whiteboard -->
+        <dependency>
+            <groupId>org.apache.aries.jax.rs</groupId>
+            <artifactId>org.apache.aries.jax.rs.whiteboard</artifactId>
+            <version>1.0.1</version>
+            <scope>provided</scope>
+        </dependency>
 
 
         <!-- https://mvnrepository.com/artifact/org.osgi/org.osgi.service.jaxrs -->
@@ -78,15 +76,6 @@
             <version>1.0.0</version>
             <scope>provided</scope>
         </dependency>
-
-<!--
-        <dependency>
-            <groupId>com.eclipsesource.jaxrs</groupId>
-            <artifactId>publisher</artifactId>
-            <version>5.3.1</version>
-        </dependency>
--->
-
 
         <dependency>
             <groupId>org.osgi</groupId>
@@ -132,22 +121,6 @@
             <version>1.6.0</version>
             <scope>provided</scope>
         </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.apache.servicemix.specs/org.apache.servicemix.specs.annotation-api-1.3 -->
-        <dependency>
-            <groupId>org.apache.servicemix.specs</groupId>
-            <artifactId>org.apache.servicemix.specs.annotation-api-1.3</artifactId>
-            <version>1.3_1</version>
-
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.servicemix.specs</groupId>
-                    <artifactId>org.apache.servicemix.specs.locator</artifactId>
-                </exclusion>
-            </exclusions>
-
-        </dependency>
-
 
         <dependency>
             <groupId>io.cresco</groupId>
@@ -195,8 +168,6 @@
             <scope>provided</scope>
         </dependency>
 
-
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -220,19 +191,6 @@
             <groupId>com.github.spullara.mustache.java</groupId>
             <artifactId>compiler</artifactId>
             <version>0.9.5</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.glassfish.jersey.containers</groupId>
-            <artifactId>jersey-container-servlet-core</artifactId>
-            <version>${jersey.version}</version>
-            <exclusions>
-                <exclusion>
-                        <groupId>org.javassist</groupId>
-                        <artifactId>javassist</artifactId>
-                </exclusion>
-            </exclusions>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>

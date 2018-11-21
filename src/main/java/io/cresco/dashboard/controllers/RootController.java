@@ -231,7 +231,7 @@ public class RootController {
     public Response getIncludes(@PathParam("subResources") String subResources)
     {
 
-        subResources = "/vendors/" + subResources;
+        subResources = "/includes/" + subResources;
 
         InputStream in = null;
         try{
