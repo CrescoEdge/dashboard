@@ -95,7 +95,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         try {
 
             //don't bother if not the dashboard
-            if(!requestContext.getUriInfo().getPath().startsWith("/dashboard")) {
+            if(!requestContext.getUriInfo().getPath().startsWith("dashboard")) {
                 return;
             }
 
