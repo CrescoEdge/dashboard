@@ -56,10 +56,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     private PluginBuilder plugin;
     private CLogger logger;
 
-    public static void connectPlugin(PluginBuilder plugin) {
-        //logger = plugin.getLogger(AuthenticationFilter.class.getName(),CLogger.Level.Info);
-
-    }
 
     @Context
     private ResourceInfo resourceInfo;
@@ -98,6 +94,10 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     public void filter(ContainerRequestContext requestContext) {
         try {
 
+            //don't bother if not the dashboard
+            if(!requestContext.getUriInfo().getPath().startsWith("/dashboard")) {
+                return;
+            }
 
             Method method = resourceInfo.getResourceMethod();
 
