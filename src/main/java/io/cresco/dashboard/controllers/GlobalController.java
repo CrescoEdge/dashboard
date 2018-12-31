@@ -82,11 +82,15 @@ public class GlobalController {
 
                     MsgEvent createQuery = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.CONFIG, region, agent, pluginId);
                     createQuery.setParam("action", "queryadd");
-                    createQuery.setParam("input_schema", myMap.get("input_schema"));
+                    createQuery.setCompressedParam("input_schema", myMap.get("input_schema"));
                     createQuery.setParam("input_stream_name", myMap.get("input_stream_name"));
                     createQuery.setParam("output_stream_name", myMap.get("output_stream_name"));
                     createQuery.setParam("output_stream_attributes", myMap.get("output_stream_attributes"));
                     createQuery.setParam("query", myMap.get("query"));
+                    createQuery.setCompressedParam("output_list",myMap.get("output_list"));
+                    //createQuery.setParam("output_agent",myMap.get("output_agent"));
+                    //createQuery.setParam("output_plugin",myMap.get("output_plugin"));
+
                     response = plugin.sendRPC(createQuery);
 
                     if (response != null) {
@@ -118,7 +122,7 @@ public class GlobalController {
                     MsgEvent inputMsg = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.EXEC, region, agent, pluginId);
                     inputMsg.setParam("action", "queryinput");
                     inputMsg.setParam("input_stream_name", myMap.get("input_stream_name"));
-                    inputMsg.setParam("input_stream_payload", myMap.get("input_stream_payload"));
+                    inputMsg.setCompressedParam("input_stream_payload", myMap.get("input_stream_payload"));
                     plugin.msgOut(inputMsg);
 
                     return Response.ok("{\"input\":\"true\"}",
