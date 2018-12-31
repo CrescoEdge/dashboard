@@ -1,6 +1,8 @@
 package io.cresco.dashboard.controllers;
 
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import io.cresco.dashboard.Plugin;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.PluginBuilder;
@@ -11,13 +13,13 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.component.annotations.ServiceScope;
 import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Type;
+import java.util.Map;
 
 
 @Component(service = Object.class,
@@ -40,6 +42,7 @@ public class GlobalController {
 
     private PluginBuilder plugin;
     private CLogger logger;
+    private Gson gson;
 
     public GlobalController() {
 
@@ -47,7 +50,92 @@ public class GlobalController {
             if(Plugin.pluginBuilder != null) {
                 plugin = Plugin.pluginBuilder;
                 logger = plugin.getLogger(GlobalController.class.getName(), CLogger.Level.Info);
+                gson = new Gson();
             }
+        }
+    }
+
+    @POST
+    @Path("/dashboard/global/cdp")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    public Response cdp(@FormParam("action_id") String actionId,
+                        @FormParam("message") String message) {
+        logger.trace("Call to cdp({}, {})", actionId, message);
+        try {
+            if (plugin == null)
+                return Response.ok("{}", MediaType.APPLICATION_JSON_TYPE).build();
+
+            Type type = new TypeToken<Map<String, String>>(){}.getType();
+            Map<String, String> myMap = gson.fromJson(message,type);
+
+            String region = myMap.get("region_id");
+            String agent = myMap.get("agent_id");
+            String pluginId = myMap.get("plugin_id");
+
+            MsgEvent response = null;
+
+
+
+            switch (actionId) {
+                case "create":
+
+                    MsgEvent createQuery = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.CONFIG, region, agent, pluginId);
+                    createQuery.setParam("action", "queryadd");
+                    createQuery.setParam("input_schema", myMap.get("input_schema"));
+                    createQuery.setParam("input_stream_name", myMap.get("input_stream_name"));
+                    createQuery.setParam("output_stream_name", myMap.get("output_stream_name"));
+                    createQuery.setParam("output_stream_attributes", myMap.get("output_stream_attributes"));
+                    createQuery.setParam("query", myMap.get("query"));
+                    response = plugin.sendRPC(createQuery);
+
+                    if (response != null) {
+                        if(response.getParam("output_schema") != null) {
+                            return Response.ok(response.getParam("output_schema"), MediaType.APPLICATION_JSON_TYPE).build();
+                        }
+                    }
+
+                    return Response.ok("{\"error\":\"Some Create Error.\"}",
+                            MediaType.APPLICATION_JSON_TYPE).build();
+
+                case "delete":
+
+                    MsgEvent deleteQuery = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.CONFIG, region, agent, pluginId);
+                    deleteQuery.setParam("action", "querydel");
+                    response = plugin.sendRPC(deleteQuery);
+
+                    if (response != null) {
+                        if(response.getParam("iscleared") != null) {
+                            return Response.ok(response.getParam("iscleared"), MediaType.APPLICATION_JSON_TYPE).build();
+                        }
+                    }
+
+                    return Response.ok("{\"error\":\"Some Delete Error.\"}",
+                            MediaType.APPLICATION_JSON_TYPE).build();
+
+                case "input":
+
+                    MsgEvent inputMsg = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.EXEC, region, agent, pluginId);
+                    inputMsg.setParam("action", "queryinput");
+                    inputMsg.setParam("input_stream_name", myMap.get("input_stream_name"));
+                    inputMsg.setParam("input_stream_payload", myMap.get("input_stream_payload"));
+                    plugin.msgOut(inputMsg);
+
+                    return Response.ok("{\"input\":\"true\"}",
+                            MediaType.APPLICATION_JSON_TYPE).build();
+
+                default:
+                    logger.error("Unknown action found: {} {}", actionId, message);
+
+            }
+
+            String info = "{}";
+            return Response.ok(info, MediaType.APPLICATION_JSON_TYPE).build();
+
+        } catch (Exception e) {
+            if (plugin != null)
+                logger.error("cdp({}, {}) : {}", actionId, message, e.getMessage());
+            return Response.ok("{}", MediaType.APPLICATION_JSON_TYPE).build();
         }
     }
 
