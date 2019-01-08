@@ -4,6 +4,7 @@ package io.cresco.dashboard.controllers;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import io.cresco.dashboard.Plugin;
+import io.cresco.library.data.TopicType;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.utilities.CLogger;
@@ -13,6 +14,7 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.component.annotations.ServiceScope;
 import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
+import javax.jms.TextMessage;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -131,6 +133,27 @@ public class GlobalController {
                     inputMsg.setCompressedParam("input_stream_payload", myMap.get("input_stream_payload"));
 
                     plugin.msgOut(inputMsg);
+
+                    return Response.ok("{\"input\":\"true\"}",
+                            MediaType.APPLICATION_JSON_TYPE).build();
+
+                case "input_stream":
+
+                    TextMessage tm = plugin.getAgentService().getDataPlaneService().createTextMessage();
+                    tm.setStringProperty("stream_name",myMap.get("input_stream_name"));
+                    tm.setText(myMap.get("input_stream_payload"));
+                    plugin.getAgentService().getDataPlaneService().sendMessage(TopicType.AGENT,tm);
+
+
+                    /*
+                    MsgEvent inputStreamMsg = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.EXEC, region, agent, pluginId);
+                    inputStreamMsg.setParam("action", "queryinput");
+                    inputStreamMsg.setParam("query_id", myMap.get("query_id"));
+                    inputStreamMsg.setParam("input_stream_name", myMap.get("input_stream_name"));
+                    inputStreamMsg.setCompressedParam("input_stream_payload", myMap.get("input_stream_payload"));
+
+                    plugin.msgOut(inputStreamMsg);
+                    */
 
                     return Response.ok("{\"input\":\"true\"}",
                             MediaType.APPLICATION_JSON_TYPE).build();
