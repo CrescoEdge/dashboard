@@ -92,6 +92,8 @@ public class GlobalController {
                     //createQuery.setParam("output_agent",myMap.get("output_agent"));
                     //createQuery.setParam("output_plugin",myMap.get("output_plugin"));
 
+                    //logger.error(createQuery.getParams().toString());
+
                     response = plugin.sendRPC(createQuery);
 
                     if (response != null) {
@@ -127,6 +129,7 @@ public class GlobalController {
                     inputMsg.setParam("query_id", myMap.get("query_id"));
                     inputMsg.setParam("input_stream_name", myMap.get("input_stream_name"));
                     inputMsg.setCompressedParam("input_stream_payload", myMap.get("input_stream_payload"));
+
                     plugin.msgOut(inputMsg);
 
                     return Response.ok("{\"input\":\"true\"}",
