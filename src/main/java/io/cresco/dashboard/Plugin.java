@@ -5,6 +5,7 @@ import io.cresco.dashboard.controllers.*;
 import io.cresco.dashboard.filters.AuthenticationFilter;
 
 
+import io.cresco.dashboard.metrics.MetricCollector;
 import io.cresco.library.agent.AgentService;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.Executor;
@@ -127,6 +128,10 @@ public class Plugin implements PluginService {
                 }
 
                 pluginBuilder.setIsActive(true);
+
+                //MetricCollector metricCollector = new MetricCollector(pluginBuilder);
+                //metricCollector.setKpiListener();
+
             }
             return true;
 
