@@ -210,7 +210,7 @@
     }
     function getPlugin() {
         $.ajax({
-            url: "/plugins/info/" + region + "/" + agent + "/" + plugin,
+            url: "/dashboard/plugins/info/" + region + "/" + agent + "/" + plugin,
             success: function(json) {
                 let formatted = syntaxHighlight(JSON.stringify(json, undefined, 4));
                 plugin_body.html(`<pre>${formatted}</pre>`);
@@ -220,7 +220,7 @@
             }
         });
         $.ajax({
-            url: "/plugins/kpi/" + region + "/" + agent + "/" + plugin,
+            url: "/dashboard/plugins/kpi/" + region + "/" + agent + "/" + plugin,
             success: function(json) {
                 $(`#plugin-metrics`).html('');
                 $.each(json, function(group_i, group_json) {

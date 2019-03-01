@@ -282,9 +282,9 @@ function restart() {
             if (mouseup_node === mousedown_node) {
                 if (active_menu == null && selected_node === mouseup_node) {
                     var data = [
-                        {icon: "/dashboard/img/icons/sitemap.svg", favicon: "wrench", text: "Region Status", node: d, action: function(d) { window.location.href = '/dashboard/regions/details/${d.data.node.params.region}'; }},
-                        {icon: "/dashboard/img/icons/microchip.svg", favicon: "wrench", text: "Agent Status", node: d, action: function(d) { window.location.href = '/dashboard/agents/details/${d.data.node.params.region}/${d.data.node.params.agent}'; }},
-                        {icon: "/dashboard/img/icons/plug.svg", favicon: "trash-alt", text: "Plugin Status", node: d, action: function(d) { window.location.href = '/dashboard/plugins/details/${d.data.node.params.region}/${d.data.node.params.agent}/${d.data.node.params.plugin}'; }}
+                        {icon: "/dashboard/img/icons/sitemap.svg", favicon: "wrench", text: "Region Status", node: d, action: function(d) { window.location.href = `/dashboard/regions/details/${d.data.node.params.region_id}`; }},
+                        {icon: "/dashboard/img/icons/microchip.svg", favicon: "wrench", text: "Agent Status", node: d, action: function(d) { window.location.href = `/dashboard/agents/details/${d.data.node.params.region_id}/${d.data.node.params.agent_id}`; }},
+                        {icon: "/dashboard/img/icons/plug.svg", favicon: "trash-alt", text: "Plugin Status", node: d, action: function(d) { window.location.href = `/dashboard/plugins/details/${d.data.node.params.region_id}/${d.data.node.params.agent_id}/${d.data.node.params.plugin_id}`; }}
                     ];
 
                     active_menu = new d3.radialMenu().radius(node_size + 1)
