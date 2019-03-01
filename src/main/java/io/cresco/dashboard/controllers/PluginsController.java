@@ -157,19 +157,6 @@ public class PluginsController {
             if (plugin == null)
                 return Response.ok("{}", MediaType.APPLICATION_JSON_TYPE).build();
             //pluginID = "plugin/" + pluginID;
-            /*
-            MsgEvent request = new MsgEvent(MsgEvent.Type.EXEC, plugin.getRegion(), plugin.getAgent(),
-                    plugin.getPluginID(), "Agent List Request");
-            request.setParam("src_region", plugin.getRegion());
-            request.setParam("src_agent", plugin.getAgent());
-            request.setParam("src_plugin", plugin.getPluginID());
-            request.setParam("dst_region", plugin.getRegion());
-            request.setParam("dst_agent", plugin.getAgent());
-            request.setParam("dst_plugin", "plugin/0");
-            request.setParam("is_regional", Boolean.TRUE.toString());
-            request.setParam("is_global", Boolean.TRUE.toString());
-            request.setParam("globalcmd", "true");
-            */
             MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.EXEC);
             request.setParam("action", "plugininfo");
             request.setParam("action_region", region);
