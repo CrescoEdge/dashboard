@@ -161,6 +161,7 @@ public class AgentsController {
             request.setParam("action", "listagents");
             */
 
+
             MsgEvent response = plugin.sendRPC(request);
 
             if (response == null)
