@@ -176,7 +176,7 @@ public class PluginExecutor implements Executor {
                             String jarPath = listOfFiles[i].getAbsolutePath();
                             String jarFileName = listOfFiles[i].getName();
                             String pluginName = plugin.getPluginName(jarPath);
-                            String pluginMD5 = plugin.getJarMD5(jarPath);
+                            String pluginMD5 = plugin.getMD5(jarPath);
                             String pluginVersion = plugin.getPluginVersion(jarPath);
                             //System.out.println(pluginName + " " + jarFileName + " " + pluginVersion + " " + pluginMD5);
                             //pluginFiles.add(listOfFiles[i].getAbsolutePath());

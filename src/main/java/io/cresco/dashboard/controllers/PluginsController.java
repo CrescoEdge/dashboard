@@ -459,7 +459,7 @@ public class PluginsController {
         try {
 
             String pluginName = plugin.getPluginName(tmpJarFile.getAbsolutePath());
-            String pluginMD5 = plugin.getJarMD5(tmpJarFile.getAbsolutePath());
+            String pluginMD5 = plugin.getMD5(tmpJarFile.getAbsolutePath());
             String pluginJarFile = tmpJarFile.getName();
             String pluginVersion = plugin.getPluginVersion(tmpJarFile.getAbsolutePath());
 
