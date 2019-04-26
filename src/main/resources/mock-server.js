@@ -8,15 +8,19 @@ const express = require('express'),
 app.engine('mustache', mustacheExpress());
 app.set('view engine', 'mustache');
 app.set('views', __dirname + "/");
-app.use('/css', express.static('css'));
-app.use('/img', express.static('img'));
-app.use('/js', express.static('js'));
-app.use('/vendors', express.static('vendors'));
+app.use('/dashboard/css', express.static('css'));
+app.use('/dashboard/img', express.static('img'));
+app.use('/dashboard/js', express.static('js'));
+app.use('/dashboard/vendors', express.static('vendors'));
 
 /**
  * Root Routes
  */
 app.get('/', (req, res) => {
+    res.redirect('/dashboard');
+});
+
+app.get('/dashboard', (req, res) => {
     res.render('overview', {
         page: {
             title: "Some Page"
@@ -26,29 +30,29 @@ app.get('/', (req, res) => {
         }
     });
 });
-app.get('/login', (req, res) => {
+app.get('/dashboard/login', (req, res) => {
     res.render('login', {
         errors: "Invalid username/password"
     });
 });
-app.post('/login', (req, res) => {
-    res.redirect('/');
+app.post('/dashboard/login', (req, res) => {
+    res.redirect('/dashboard');
 });
-app.get('/logout', (req, res) => {
-    res.redirect('/login');
+app.get('/dashboard/logout', (req, res) => {
+    res.redirect('/dashboard/login');
 });
 
 /**
  * Agents Routes
  */
-app.get('/agents', (req, res) => {
+app.get('/dashboard/agents', (req, res) => {
     res.render('agents', {
         page: "builder",
         section: "applicaitons",
         user: "Admin"
     })
 });
-app.get('/agents/details/:region/:agent', (req, res) => {
+app.get('/dashboard/agents/details/:region/:agent', (req, res) => {
     res.render('agent-details', {
         page: "details",
         section: "agents",
@@ -57,37 +61,37 @@ app.get('/agents/details/:region/:agent', (req, res) => {
         agent: req.params.agent
     });
 });
-app.get('/agents/list', (req, res) => {
+app.get('/dashboard/agents/list', (req, res) => {
     res.send(agentsListData(null));
 });
-app.get('/agents/listlocal', (req, res) => {
+app.get('/dashboard/agents/listlocal', (req, res) => {
     res.send(agentsListLocalData());
 });
-app.get('/agents/list/:region', (req, res) => {
+app.get('/dashboard/agents/list/:region', (req, res) => {
     res.send(agentsListData(req.params.region));
 });
-app.get('/agents/resources/:region/:agent', (req, res) => {
+app.get('/dashboard/agents/resources/:region/:agent', (req, res) => {
     res.send(agentsResourceData(req.params.region, req.params.agent));
 });
 
 /**
  * Applications Routes
  */
-app.get('/applications', (req, res) => {
+app.get('/dashboard/applications', (req, res) => {
     res.render('applications', {
         page: "index",
         section: "applications",
         user: "Admin"
     });
 });
-app.get('/applications/build', (req, res) => {
+app.get('/dashboard/applications/build', (req, res) => {
     res.render('application-builder', {
         page: "builder",
         section: "applicaitons",
         user: "Admin"
     })
 });
-app.get('/applications/details/:id', (req, res) => {
+app.get('/dashboard/applications/details/:id', (req, res) => {
     res.render('application-details', {
         page: "builder",
         section: "applicaitons",
@@ -95,36 +99,36 @@ app.get('/applications/details/:id', (req, res) => {
         app_id: req.params.id
     })
 });
-app.get('/applications/list', (req, res) => {
+app.get('/dashboard/applications/list', (req, res) => {
     res.send(applicationsListData());
 });
-app.post('/applications/add', (req, res) => {
+app.post('/dashboard/applications/add', (req, res) => {
     res.send(applicationsAddData());
 });
-app.get('/applications/info/:id', (req, res) => {
+app.get('/dashboard/applications/info/:id', (req, res) => {
     res.send(applicationsInfoData(req.params.id));
 });
-app.get('/applications/nodeinfo/:inode/:resource', (req, res) => {
+app.get('/dashboard/applications/nodeinfo/:inode/:resource', (req, res) => {
     res.send(applicationsNodeInfoData(req.params.inode, req.params.resource));
 });
-app.get('/applications/export/:id', (req, res) => {
+app.get('/dashboard/applications/export/:id', (req, res) => {
     res.send(applicationsExportData(req.params.id));
 });
-app.get('/applications/delete/:id', (req, res) => {
+app.get('/dashboard/applications/delete/:id', (req, res) => {
     res.redirect('/applications');
 });
 
 /**
  * Plugins Routes
  */
-app.get('/plugins', (req, res) => {
+app.get('/dashboard/plugins', (req, res) => {
     res.render('plugins', {
         page: "index",
         section: "plugins",
         user: "Admin"
     });
 });
-app.get('/plugins/details/:region/:agent/:plugin(*)', (req, res) => {
+app.get('/dashboard/plugins/details/:region/:agent/:plugin(*)', (req, res) => {
     res.render('plugin-details', {
         page: "details",
         section: "plugins",
@@ -134,28 +138,28 @@ app.get('/plugins/details/:region/:agent/:plugin(*)', (req, res) => {
         plugin: req.params.plugin
     });
 });
-app.get('/plugins/info/:region/:agent/:plugin(*)', (req, res) => {
+app.get('/dashboard/plugins/info/:region/:agent/:plugin(*)', (req, res) => {
     res.send(pluginsInfoData(req.params.region, req.params.agent, req.params.plugin));
 });
-app.get('/plugins/kpi/:region/:agent/:plugin(*)', (req, res) => {
+app.get('/dashboard/plugins/kpi/:region/:agent/:plugin(*)', (req, res) => {
     res.send(pluginsKPIData(req.params.region, req.params.agent, req.params.plugin));
 });
-app.get('/plugins/list', (req, res) => {
+app.get('/dashboard/plugins/list', (req, res) => {
     res.send(pluginsListData(null, null));
 });
-app.get('/plugins/list/:region', (req, res) => {
+app.get('/dashboard/plugins/list/:region', (req, res) => {
     res.send(pluginsListData(req.params.region, null));
 });
-app.get('/plugins/list/:region/:agent', (req, res) => {
+app.get('/dashboard/plugins/list/:region/:agent', (req, res) => {
     res.send(pluginsListData(req.params.region, req.params.agent));
 });
-app.post('/plugins/uploadplugin', (req, res) => {
+app.post('/dashboard/plugins/uploadplugin', (req, res) => {
     res.send(pluginsUploadPluginData());
 });
-app.get('/plugins/listrepo', (req, res) => {
+app.get('/dashboard/plugins/listrepo', (req, res) => {
     res.send(pluginsListRepoData());
 });
-app.get('/plugins/local', (req, res) => {
+app.get('/dashboard/plugins/local', (req, res) => {
     // ToDo: Implement this route
     res.send("Not yet implemented!");
 });
@@ -163,7 +167,7 @@ app.get('/plugins/local', (req, res) => {
 /**
  * Regions Routes
  */
-app.get('/regions', (req, res) => {
+app.get('/dashboard/regions', (req, res) => {
     res.render('regions', {
         page: { },
         user: {
@@ -171,7 +175,7 @@ app.get('/regions', (req, res) => {
         }
     });
 });
-app.get('/regions/details/:region', (req, res) => {
+app.get('/dashboard/regions/details/:region', (req, res) => {
     res.render('region-details', {
         page: "details",
         section: "regions",
@@ -179,10 +183,10 @@ app.get('/regions/details/:region', (req, res) => {
         region: req.params.region
     });
 });
-app.get('/regions/list', (req, res) => {
+app.get('/dashboard/regions/list', (req, res) => {
     res.send(regionsListData());
 });
-app.get('/regions/resources/:region', (req, res) => {
+app.get('/dashboard/regions/resources/:region', (req, res) => {
     res.send(regionsResourcesData(req.params.region));
 });
 
@@ -190,7 +194,7 @@ app.get('/regions/resources/:region', (req, res) => {
  * Mock-Server Startup Section
  */
 app.listen(port);
-console.log(`Mock Cresco Server running at http://localhost:${port}`);
+console.log(`Mock Cresco Server running at http://localhost:${port}/dashboard`);
 
 /**
  * Agents Mock-Data Generators

@@ -18,6 +18,7 @@
                     <div class="card-header">
                         <span style="font-size: 24px;"><i class="fa fa-align-justify"></i> Cresco Application Builder IDE</span>
                         <div class="pull-right">
+                            <button type="button" class="btn btn-primary" onclick="showEditPipelineName()"><i class="fa fa-pencil" aria-hidden="true"></i> Rename Pipeline</button>
                             <button type="button" class="btn btn-primary" onclick="showAddPlugin()"><i class="fa fa-upload" aria-hidden="true"></i> Upload Plugin</button>
                             <button type="button" class="btn btn-warning" onclick="showFAQ()"><i class="fa fa-question" aria-hidden="true"></i> Help</button>
                             <button type="button" class="btn btn-success" onclick="previewCADL()"><i class="fa fa-cloud-upload" aria-hidden="true"></i> Submit Application</button>
@@ -79,6 +80,28 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="cancelUpdatePlugin();">Close</button>
                 <button type="button" class="btn btn-success" onclick="updatePlugin();">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="edit-pipeline-name-modal" tabindex="-1" role="dialog" aria-labelledby="editPipelineNameModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="edit-pipeline-name-modal-title">Edit Pipeline Name</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">x</span></button>
+            </div>
+            <div class="modal-body" id="edit-pipeline-name-modal-body">
+                <div class="form-group row" style="verticle-align: middle;line-height: 35px;">
+                    <label for="edit-pipeline-name-modal-name" class="col-sm-2 form-control-label">Pipeline Name</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="edit-pipeline-name-modal-name" >
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="updatePipelineName();">Save Changes</button>
             </div>
         </div>
     </div>
@@ -150,9 +173,11 @@
 <script type="text/javascript" src="/dashboard/js/menu.js"></script>
 <script type="text/javascript" src="/dashboard/js/force.js"></script>
 <script type="text/javascript">
-    var pluginData = {};
-    var regionData = {};
-    var agentData = {};
+    let pluginData = {};
+    let regionData = {};
+    let agentData = {};
+
+    let pipelineName = `demo_pipeline`;
 
     $(function() {
         setInterval(updateRepoData(), 5000);
@@ -396,7 +421,7 @@
     function generateCADL() {
         var cadl = {};
         cadl['pipeline_id'] = '0';
-        cadl['pipeline_name'] = 'demo_pipeline';
+        cadl['pipeline_name'] = pipelineName;
         cadl['nodes'] = [];
         $.each(nodes, function(i, v) {
             let node = {
@@ -429,6 +454,18 @@
             }
         });
         return cadl;
+    }
+
+    function showEditPipelineName() {
+        editting_plugin = true;
+        $(`#edit-pipeline-name-modal-name`).val(pipelineName);
+        $(`#edit-pipeline-name-modal`).modal('show');
+    }
+
+    function updatePipelineName() {
+        editting_plugin = false;
+        pipelineName = $(`#edit-pipeline-name-modal-name`).val();
+        $('#edit-pipeline-name-modal').modal('hide');
     }
 
     function showAddPlugin() {

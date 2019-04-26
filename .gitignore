@@ -3,3 +3,4 @@
 target/
 dashboard.iml
 build.sh
+node_modules/
