@@ -200,11 +200,39 @@ console.log(`Mock Cresco Server running at http://localhost:${port}/dashboard`);
  * Agents Mock-Data Generators
  */
 function agentsListData(region) {
-    var data = {"agents":[{"environment":"simulation","plugins":"2","name":"mock-agent","location":"work","region":"mock-region","platform":"simulation"},{"environment":"simulation","plugins":"2","name":"mock-agent-2","location":"work","region":"mock-region","platform":"simulation"}]};
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
+        "agents":[
+            {
+                "environment":"simulation",
+                "plugins":"2",
+                "name":"mock-agent",
+                "location":"work",
+                "region":"mock-region",
+                "platform":"simulation"
+            },
+            {
+                "environment":"simulation",
+                "plugins":"2",
+                "name":"mock-agent-2",
+                "location":"work",
+                "region":"mock-region",
+                "platform":"simulation"
+            }
+        ]
+    };
     return data;
 }
 function agentsListLocalData() {
-    var data = {"agents":[{"agent":"mock-agent","region":"mock-region"}]};
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
+        "agents":[
+            {
+                "agent":"mock-agent",
+                "region":"mock-region"
+            }
+        ]
+    };
     return data;
 }
 function agentsResourceData(region, agent) {
@@ -313,6 +341,7 @@ function agentsResourceData(region, agent) {
             "uuid": ""
         }]
     };
+    // noinspection UnnecessaryLocalVariableJS
     let data = {
         "agentresourceinfo": [{
             "perf": JSON.stringify(perf)
@@ -325,19 +354,88 @@ function agentsResourceData(region, agent) {
  * Applications Mock-Data Generators
  */
 function applicationsListData() {
-    var data = {"pipelines":[{"tenant_id":"0","status_code":"50","status_desc":"Pipeline Failed Resource Assignment","pipeline_id":"mock-bad-pipeline-id","pipeline_name":"mock_bad_pipeline"},{"tenant_id":"0","status_code":"10","status_desc":"Pipeline Active","pipeline_id":"mock-pipeline-id","pipeline_name":"mock_pipeline"}]};
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
+        "pipelines":[
+            {
+                "tenant_id":"0",
+                "status_code":"50",
+                "status_desc":"Pipeline Failed Resource Assignment",
+                "pipeline_id":"mock-bad-pipeline-id",
+                "pipeline_name":"mock_bad_pipeline"
+            },
+            {
+                "tenant_id":"0",
+                "status_code":"10",
+                "status_desc":"Pipeline Active",
+                "pipeline_id":"mock-pipeline-id",
+                "pipeline_name":"mock_pipeline"
+            }
+        ]
+    };
     return data;
 }
 function applicationsAddData() {
-    var data = {"gpipeline_id": "mock-pipeline-id"}
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
+        "gpipeline_id": "mock-pipeline-id"
+    };
     return data;
 }
 function applicationsInfoData(id) {
-    var data = {"pipeline_id":"mock-pipeline-id","pipeline_name":"mock_pipeline","status_code":"10","status_desc":"Pipeline Active","nodes":[{"type":"dummy","node_name":"Plugin 1","node_id":"mock-node-id","isSource":false,"workloadUtil":0.0,"params":{"status_code":"3","status_desc":"iNode Active.","params":"pluginname:mock-pluginname,jarfile:mock-jar,version:mock-version,md5:mock-md5,location_agent:mock-agent,location_region:mock-region,resource_id:mock-resource-id,inode_id:mock-inode-id","inode_id":"mock-inode-id","resource_id":"mock-resource-id"}},{"type":"dummy","node_name":"Plugin 2","node_id":"mock-node-2-id","isSource":false,"workloadUtil":0.0,"params":{"status_code":"8","status_desc":"iNode Active.","params":"pluginname:mock-pluginname,jarfile:mock-jar,version:mock-version,md5:mock-md5,location_agent:mock-agent-2,location_region:mock-region,resource_id:mock-resource-2-id,inode_id:mock-inode-2-id","inode_id":"mock-inode-2-id","resource_id":"mock-resource-2-id"}}],"edges":[{"edge_id": "mock-edge-id", "node_from": "mock-node-id", "node_to": "mock-node-2-id"}]};
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
+        "pipeline_id":"mock-pipeline-id",
+        "pipeline_name":"mock_pipeline",
+        "status_code":"10",
+        "status_desc":"Pipeline Active",
+        "nodes":[
+            {
+                "type":"dummy",
+                "node_name":"Plugin 1",
+                "node_id":"mock-node-id",
+                "isSource":false,
+                "workloadUtil":0.0,
+                "params":{
+                    "status_code":"3",
+                    "status_desc":"iNode Active.",
+                    "params":"pluginname:mock-pluginname,jarfile:mock-jar,version:mock-version,md5:mock-md5," +
+                        "location_agent:mock-agent,location_region:mock-region,resource_id:mock-resource-id," +
+                        "inode_id:mock-inode-id",
+                    "inode_id":"mock-inode-id",
+                    "resource_id":"mock-resource-id"
+                }
+            },
+            {
+                "type":"dummy",
+                "node_name":"Plugin 2",
+                "node_id":"mock-node-2-id",
+                "isSource":false,
+                "workloadUtil":0.0,
+                "params":{
+                    "status_code":"8",
+                    "status_desc":"iNode Active.",
+                    "params":"pluginname:mock-pluginname,jarfile:mock-jar,version:mock-version,md5:mock-md5," +
+                        "location_agent:mock-agent-2,location_region:mock-region,resource_id:mock-resource-2-id," +
+                        "inode_id:mock-inode-2-id",
+                    "inode_id":"mock-inode-2-id",
+                    "resource_id":"mock-resource-2-id"
+                }
+            }
+        ],
+        "edges":[
+            {
+                "edge_id":"mock-edge-id",
+                "node_from":"mock-node-id",
+                "node_to":"mock-node-2-id"
+            }
+        ]
+    };
     return data;
 }
 function applicationsNodeInfoData(inode, resource) {
-    var data = {
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
         "isassignmentinfo": {
             "agent": "mock-agent",
             "plugin": "plugin/0",
@@ -350,7 +448,56 @@ function applicationsNodeInfoData(inode, resource) {
     return data;
 }
 function applicationsExportData(id) {
-    var data = {"pipeline_id":"mock-pipeline-id","pipeline_name":"mock_pipeline","status_code":"3","status_desc":"Pipeline Nodes Created.","nodes":[{"type":"dummy","node_name":"Plugin 1","node_id":"mock-node-id","isSource":false,"workloadUtil":0.0,"params":{"pluginname":"mock-pluginname","jarfile":"mock-jar","version":"mock-version","md5":"mock-md5","location_agent":"mock-agent","location_region":"mock-region","resource_id":"mock-resource-id","inode_id":"mock-inode-id"}},{"type":"dummy","node_name":"Plugin 2","node_id":"mock-node-2-id","isSource":false,"workloadUtil":0.0,"params":{"pluginname":"mock-pluginname","jarfile":"mock-jar","version":"mock-version","md5":"mock-md5","location_agent":"mock-agent-2","location_region":"mock-region","resource_id":"mock-resource-2-id","inode_id":"mock-inode-2-id"}}],"edges":[{"edge_id": "mock-edge-id", "node_from": "mock-node-id", "node_to": "mock-node-2-id"}]};
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
+        "pipeline_id":"mock-pipeline-id",
+        "pipeline_name":"mock_pipeline",
+        "status_code":"3",
+        "status_desc":"Pipeline Nodes Created.",
+        "nodes":[
+            {
+                "type":"dummy",
+                "node_name":"Plugin 1",
+                "node_id":"mock-node-id",
+                "isSource":false,
+                "workloadUtil":0.0,
+                "params":{
+                    "pluginname":"mock-pluginname",
+                    "jarfile":"mock-jar",
+                    "version":"mock-version",
+                    "md5":"mock-md5",
+                    "location_agent":"mock-agent",
+                    "location_region":"mock-region",
+                    "resource_id":"mock-resource-id",
+                    "inode_id":"mock-inode-id"
+                }
+            },
+            {
+                "type":"dummy",
+                "node_name":"Plugin 2",
+                "node_id":"mock-node-2-id",
+                "isSource":false,
+                "workloadUtil":0.0,
+                "params":{
+                    "pluginname":"mock-pluginname",
+                    "jarfile":"mock-jar",
+                    "version":"mock-version",
+                    "md5":"mock-md5",
+                    "location_agent":"mock-agent-2",
+                    "location_region":"mock-region",
+                    "resource_id":"mock-resource-2-id",
+                    "inode_id":"mock-inode-2-id"
+                }
+            }
+        ],
+        "edges":[
+            {
+                "edge_id":"mock-edge-id",
+                "node_from":"mock-node-id",
+                "node_to": "mock-node-2-id"
+            }
+        ]
+    };
     return data;
 }
 
@@ -358,30 +505,203 @@ function applicationsExportData(id) {
  * Plugins Mock-Data Generators
  */
 function pluginsInfoData(region, agent, plugin) {
-    var data = {"pluginname": "mock-pluginname", "jarfile": "mock-jar"}
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
+        "pluginname":"mock-pluginname",
+        "jarfile":"mock-jar"
+    };
     return data;
 }
 function pluginsKPIData(region, agent, plugin) {
+    let metrics = {
+        "controller":[
+            {
+                "name":"system.load.average.1m",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"2.8642578125"
+            },
+            {
+                "name":"system.cpu.usage",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"0.14108723135271808"
+            },
+            {
+                "name":"jvm.memory.committed",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"5898240.0"
+            },
+            {
+                "name":"process.cpu.usage",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"0.05002657804450424"
+            },
+            {
+                "name":"jvm.threads.peak",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"86.0"
+            },
+            {
+                "name":"jvm.threads.live",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"85.0"
+            },
+            {
+                "name":"jvm.memory.max",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"1.1010048E7"
+            },
+            {
+                "name":"jvm.memory.used",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"1.3084992E7"
+            },
+            {
+                "name":"system.cpu.count",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"8.0"
+            },
+            {
+                "name":"jvm.classes.loaded",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"7873.0"
+            },
+            {
+                "totaltime":"14708.963966",
+                "max":"14636.039381",
+                "mean":"1337.1785423636363",
+                "name":"message.transaction.time",
+                "count":"11",
+                "type":"NODE",
+                "class":"TIMER"
+            },
+            {
+                "name":"jvm.classes.unloaded",
+                "count":"0.0",
+                "type":"NODE",
+                "class":"COUNTER"
+            },
+            {
+                "name":"jvm.buffer.memory.used",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"1.074557642E9"
+            },
+            {
+                "name":"jvm.threads.daemon",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"38.0"
+            },
+            {
+                "name":"jvm.buffer.count",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"5.0"
+            },
+            {
+                "name":"jvm.buffer.total.capacity",
+                "type":"NODE",
+                "class":"GAUGE",
+                "value":"1.074557642E9"
+            }
+        ]
+    };
+    // noinspection UnnecessaryLocalVariableJS
     let data = [
         {
-            "name": "controllerinfo_inode",
-            "metrics": "{\"controller\":[{\"name\":\"system.load.average.1m\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"2.8642578125\"},{\"name\":\"system.cpu.usage\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"0.14108723135271808\"},{\"name\":\"jvm.memory.committed\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"5898240.0\"},{\"name\":\"process.cpu.usage\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"0.05002657804450424\"},{\"name\":\"jvm.threads.peak\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"86.0\"},{\"name\":\"jvm.threads.live\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"85.0\"},{\"name\":\"jvm.memory.max\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"1.1010048E7\"},{\"name\":\"jvm.memory.used\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"1.3084992E7\"},{\"name\":\"system.cpu.count\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"8.0\"},{\"name\":\"jvm.classes.loaded\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"7873.0\"},{\"totaltime\":\"14708.963966\",\"max\":\"14636.039381\",\"mean\":\"1337.1785423636363\",\"name\":\"message.transaction.time\",\"count\":\"11\",\"type\":\"NODE\",\"class\":\"TIMER\"},{\"name\":\"jvm.classes.unloaded\",\"count\":\"0.0\",\"type\":\"NODE\",\"class\":\"COUNTER\"},{\"name\":\"jvm.buffer.memory.used\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"1.074557642E9\"},{\"name\":\"jvm.threads.daemon\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"38.0\"},{\"name\":\"jvm.buffer.count\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"5.0\"},{\"name\":\"jvm.buffer.total.capacity\",\"type\":\"NODE\",\"class\":\"GAUGE\",\"value\":\"1.074557642E9\"}]}"
+            "name":"controllerinfo_inode",
+            "metrics": JSON.stringify(metrics)
         }
     ];
     return data;
 }
 function pluginsListData(region, agent) {
-    var data = {"plugins":[{"agent": "mock-agent", "name": "plugin/0", "region":"mock-region"},{"agent": "mock-agent", "name": "plugin/1", "region":"mock-region"},{"agent": "mock-agent-2", "name": "plugin/0", "region":"mock-region"},{"agent": "mock-agent-2", "name": "plugin/1", "region":"mock-region"}]};
-    if (agent !== null)
-        data = {"plugins":[{"agent": agent, "name": "plugin/0", "region":"mock-region"},{"agent": agent, "name": "plugin/1", "region":"mock-region"}]};
+    let data = {
+        "plugins":[
+            {
+                "agent":"mock-agent",
+                "name":"plugin/0",
+                "region":"mock-region"
+            },
+            {
+                "agent":"mock-agent",
+                "name":"plugin/1",
+                "region":"mock-region"
+            },
+            {
+                "agent":"mock-agent-2",
+                "name":"plugin/0",
+                "region":"mock-region"
+            },
+            {
+                "agent":"mock-agent-2",
+                "name":"plugin/1",
+                "region":"mock-region"
+            }
+        ]
+    };
+    if (agent !== null) {
+        data = {
+            "plugins":[
+                {
+                    "agent":agent,
+                    "name":"plugin/0",
+                    "region":"mock-region"
+                },
+                {
+                    "agent":agent,
+                    "name":"plugin/1",
+                    "region":"mock-region"
+                }
+            ]
+        };
+    }
     return data;
 }
 function pluginsUploadPluginData() {
-    var data = {"pluginname": "mock-plugin", "jarfile": "mock-jar", "version": "mock-version", "md5": "mock-md5"};
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
+        "pluginname":"mock-plugin",
+        "jarfile":"mock-jar",
+        "version":"mock-version",
+        "md5":"mock-md5"
+    };
     return data;
 }
 function pluginsListRepoData() {
-    var data = {"plugins": [{"pluginname": "mock-plugin", "jarfile": "mock-jar", "version": "mock-version", "md5": "mock-md5"},{"pluginname": "mock-plugin-2", "jarfile": "mock-jar-2", "version": "mock-version-2", "md5": "mock-md5-2"},{"pluginname": "mock-plugin-3", "jarfile": "mock-jar-3", "version": "mock-version-3", "md5": "mock-md5-3"}]};
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
+        "plugins":[
+            {
+                "pluginname":"mock-plugin",
+                "jarfile":"mock-jar",
+                "version":"mock-version",
+                "md5":"mock-md5"
+            },
+            {
+                "pluginname":"mock-plugin-2",
+                "jarfile":"mock-jar-2",
+                "version":"mock-version-2",
+                "md5":"mock-md5-2"
+            },
+            {
+                "pluginname":"mock-plugin-3",
+                "jarfile":"mock-jar-3",
+                "version":"mock-version-3",
+                "md5":"mock-md5-3"
+            }
+        ]
+    };
     return data;
 }
 
@@ -389,11 +709,20 @@ function pluginsListRepoData() {
  Regions Mock-Data Generators
  */
 function regionsListData() {
-    var data = {"regions": [{"name": "mock-region", "agents": "2"}]};
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
+        "regions":[
+            {
+                "name":"mock-region",
+                "agents":"2"
+            }
+        ]
+    };
     return data;
 }
 function regionsResourcesData(region) {
-    var data = {
+    // noinspection UnnecessaryLocalVariableJS
+    let data = {
         "regionresourceinfo": [
             {
                 "disk_available": "1672682586112",
