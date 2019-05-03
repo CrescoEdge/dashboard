@@ -254,9 +254,39 @@
         });
     }
 
+    let selectedNode = {};
+    let selectedRegion = '';
+    let selectedAgent = '';
+
+    function buildRegionList() {
+        let paramHTML = '';
+        $.each(regionData.regions, function(i, v) {
+            if (selectedRegion === '')
+                selectedRegion = v.name;
+            paramHTML += "<option value='" + v.name + "'";
+            if (selectedNode.params.location_region === v.name) { paramHTML += " selected "; selectedRegion = v.name; }
+            paramHTML += ">" + v.name + "</option>";
+        });
+        return paramHTML;
+    }
+
+
+    function buildAgentList() {
+        let paramHTML = '';
+        $.each(agentData.agents, function(i, v) {
+            if (v.region === selectedRegion) {
+                paramHTML += "<option value='" + v.name + "'";
+                if (selectedNode.params.location_agent === v.name) { paramHTML += " selected "; selectedAgent = v.name }
+                paramHTML += ">" + v.name + "</option>";
+            }
+        });
+        return paramHTML;
+    }
+
     function editplugin(d) {
         editting_plugin = true;
         var node = nodes[d.data.node.index];
+        selectedNode = node;
         $('#edit-plugin-modal-title').html("Editting " + node.title);
         var modalBody = $('#edit-plugin-modal-body');
         modalBody.append("<input type='hidden' id='edit-plugin-index' value='" + node.index + "' /><br>");
@@ -279,21 +309,13 @@
             } else if (param === "location_region") {
                 paramHTML += "<div class='col-sm-3'><input class='form-control' disabled name='edit-plugin-param-select-keys[]' placeholder='Parameter Key' value='" + param + "' /></div>";
                 paramHTML += "<div class='col-sm-9'><select id='edit-plugin-" + param + "' class='form-control' name='edit-plugin-param-select-values[]'>";
-                $.each(regionData.regions, function(i, v) {
-                    paramHTML += "<option value='" + v.name + "'";
-                    if (node.params.location_region === v.name) { paramHTML += " selected "; }
-                    paramHTML += ">" + v.name + "</option>";
-                });
-                paramHTML += "</div>";
+                paramHTML += buildRegionList();
+                paramHTML += "</select></div>";
             } else if (param === "location_agent") {
                 paramHTML += "<div class='col-sm-3'><input class='form-control' disabled name='edit-plugin-param-select-keys[]' placeholder='Parameter Key' value='" + param + "' /></div>";
                 paramHTML += "<div class='col-sm-9'><select id='edit-plugin-" + param + "' class='form-control' name='edit-plugin-param-select-values[]'>";
-                $.each(agentData.agents, function(i, v) {
-                    paramHTML += "<option value='" + v.name + "'";
-                    if (node.params.location_agent === v.name) { paramHTML += " selected "; }
-                    paramHTML += ">" + v.name + "</option>";
-                });
-                paramHTML += "</div>";
+                paramHTML += buildAgentList();
+                paramHTML += "</select></div>";
             } else {
                 paramHTML += "<div class='col-sm-3'><input class='form-control' name='edit-plugin-param-input-keys[]' placeholder='Parameter Key' value='" + param + "' /></div>";
                 paramHTML += "<div class='col-sm-8'><input class='form-control' name='edit-plugin-param-input-values[]' placeholder='Parameter Value' value='" + node.params[param] + "'/></div>";
@@ -320,6 +342,10 @@
                 version.val(pluginInfo.version);
                 md5hash.val(pluginInfo.md5);
             }
+        });
+        $(`#edit-plugin-location_region`).change(function() {
+            selectedRegion = $(`#edit-plugin-location_region`).val();
+            $(`#edit-plugin-location_agent`).html(buildAgentList());
         });
         $('#edit-plugin-modal').modal('show');
         $('#edit-plugin-modal').on('hidden.bs.modal', function() {
@@ -432,6 +458,9 @@
         active_menu_node = null;
         selected_link = null;
         selected_node = null;
+        selectedNode = {};
+        selectedRegion = '';
+        selectedAgent = '';
         tooltip.style('visibility', 'hidden');
         clearTimeout(tooltip_show);
         restart();

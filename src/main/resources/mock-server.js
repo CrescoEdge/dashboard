@@ -216,7 +216,7 @@ function agentsListData(region) {
                 "plugins":"2",
                 "name":"mock-agent-2",
                 "location":"work",
-                "region":"mock-region",
+                "region":"mock-region-2",
                 "platform":"simulation"
             }
         ]
@@ -641,12 +641,12 @@ function pluginsListData(region, agent) {
             {
                 "agent":"mock-agent-2",
                 "name":"plugin/0",
-                "region":"mock-region"
+                "region":"mock-region-2"
             },
             {
                 "agent":"mock-agent-2",
                 "name":"plugin/1",
-                "region":"mock-region"
+                "region":"mock-region-2"
             }
         ]
     };
@@ -714,7 +714,11 @@ function regionsListData() {
         "regions":[
             {
                 "name":"mock-region",
-                "agents":"2"
+                "agents":"1"
+            },
+            {
+                "name":"mock-region-2",
+                "agents":"1"
             }
         ]
     };

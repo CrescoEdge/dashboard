@@ -409,8 +409,8 @@ function addnode(element) {
             'jarfile': '',
             'version': '',
             'md5': '',
-            'location_agent': '',
-            'location_region': ''
+            'location_region': '',
+            'location_agent': ''
         }
     };
     node.x = point[0];
