@@ -18,12 +18,7 @@ var contextMenu = [
         action: function(data, index) {
             addnode(this);
         }
-    }/*,{
-        title: 'Preview CADL',
-        action: function(data, index) {
-            previewCADL();
-        }
-    }*/
+    }
 ];
 
 var bg = svg.append('svg:rect')
@@ -69,7 +64,7 @@ var bg = svg.append('svg:rect')
 //  - nodes are known by 'id', not by index in array.
 //  - reflexive edges are indicated on the node (as a bold black circle).
 //  - links are always source < target; edge directions are set by 'left' and 'right'.
-var nodes = [
+let nodes = [
         //{id: 0, reflexive: true, title: 'Plugin 1', params: { 'pluginname': 'cresco-container-plugin', 'jarfile': 'cresco-container-plugin-0.1.0.jar', 'version': '0.1.0.309ef0c78a20ad45fe6c4fe2d1cd9ffa8ab81289.2018-05-15T13:34:13Z', 'md5': 'ef1b94e8f44ffd0ccfbe0a6431a6b344'} },
         //{id: 1, reflexive: true, title: 'Plugin 2', params: { 'pluginname': 'cresco-container-plugin', 'jarfile': 'cresco-container-plugin-0.1.0.jar', 'version': '0.1.0.309ef0c78a20ad45fe6c4fe2d1cd9ffa8ab81289.2018-05-15T13:34:13Z', 'md5': 'ef1b94e8f44ffd0ccfbe0a6431a6b344' } },
         //{id: 2, reflexive: true, title: 'Plugin 3', params: { 'pluginname': 'cresco-container-plugin', 'jarfile': 'cresco-container-plugin-0.1.0.jar', 'version': '0.1.0.309ef0c78a20ad45fe6c4fe2d1cd9ffa8ab81289.2018-05-15T13:34:13Z', 'md5': 'ef1b94e8f44ffd0ccfbe0a6431a6b344' } }
@@ -78,7 +73,8 @@ var nodes = [
     links = [
         //{source: nodes[0], target: nodes[1], left: true, right: true },
         //{source: nodes[1], target: nodes[2], left: true, right: true }
-    ];
+    ],
+    lastLinkId = -1;
 
 // init D3 force layout
 var force = d3.layout.force()
@@ -138,9 +134,11 @@ var path = svg.append('svg:g').selectAll('path'),
 // mouse event vars
 var selected_node = null,
     selected_link = null,
+    hover_link = null,
     active_menu = null,
     active_menu_node = null,
     tooltip_show = null,
+    tooltip_hide = null,
     mousedown_link = null,
     mousedown_node = null,
     mouseup_node = null;
@@ -176,6 +174,17 @@ function tick() {
 
 // update graph (called when needed)
 function restart() {
+    tooltip
+        .on('mouseover', function(d) {
+            clearTimeout(tooltip_hide);
+        })
+        .on('mouseout', function(d) {
+            tooltip_hide = setTimeout(function() {
+                tooltip.style("visibility", "hidden");
+                hover_link = null;
+            }, 600);
+        });
+
     // path (link) group
     path = path.data(links);
 
@@ -191,6 +200,30 @@ function restart() {
         .classed('selected', function(d) { return d === selected_link; })
         .style('marker-start', function(d) { return d.left ? 'url(#start-arrow)' : ''; })
         .style('marker-end', function(d) { return d.right ? 'url(#end-arrow)' : ''; })
+        .on('mousemove', function(d) {
+            tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");
+        })
+        .on('mouseover', function(d) {
+            clearTimeout(tooltip_hide);
+            hover_link = d;
+            tooltip.html(generateLinkTooltip(d));
+            tooltip_show = setTimeout(function() {
+                tooltip.style("visibility", "visible");
+            }, 600);
+            if(!mousedown_node || d === mousedown_node) return;
+            // enlarge target node
+            d3.select(this).attr('transform', 'scale(1.1)');
+        })
+        .on('mouseout', function(d) {
+            clearTimeout(tooltip_show);
+            tooltip_hide = setTimeout(function() {
+                tooltip.style("visibility", "hidden");
+                hover_link = null;
+            }, 600);
+            if(!mousedown_node || d === mousedown_node) return;
+            // unenlarge target node
+            d3.select(this).attr('transform', '');
+        })
         .on('mousedown', function(d) {
             if(d3.event.ctrlKey) return;
 
@@ -227,6 +260,7 @@ function restart() {
             tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");
         })
         .on('mouseover', function(d) {
+            clearTimeout(tooltip_hide);
             tooltip.html(generateTooltip(d));
             tooltip_show = setTimeout(function() {
                 tooltip.style("visibility", "visible");
@@ -325,6 +359,8 @@ function restart() {
             } else {
                 link = {source: source, target: target, left: false, right: false};
                 link[direction] = true;
+                link.id = ++lastLinkId;
+                link.params = {};
                 links.push(link);
             }
 
@@ -373,8 +409,8 @@ function addnode(element) {
             'jarfile': '',
             'version': '',
             'md5': '',
-            'location_agent': '',
-            'location_region': ''
+            'location_region': '',
+            'location_agent': ''
         }
     };
     node.x = point[0];

@@ -83,6 +83,21 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="edit-link-modal" tabindex="-1" role="dialog" aria-labelledby="addGCModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="edit-link-modal-title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">x</span></button>
+            </div>
+            <div class="modal-body" id="edit-link-modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="cancelUpdateLink();">Close</button>
+                <button type="button" class="btn btn-success" onclick="updateLink();">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="submit-application-modal" tabindex="-1" role="dialog" aria-labelledby="addGCModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -202,9 +217,76 @@
         return tooltip_html;
     }
 
+    function generateLinkTooltip(d) {
+        var tooltip_html = `<div id='node-tooltip-title'><h5>Edge ${d.id}</h5></div>`;
+        tooltip_html += "<div id='node-tooltip-body'>";
+        tooltip_html += "<span class='key'>Source:</span> <span class='string'>" + d.source.title + "</span><br>";
+        tooltip_html += "<span class='key'>Target:</span> <span class='string'>" + d.target.title + "</span><br>";
+        for (var param in d.params) {
+            tooltip_html += "<span class='key'>" + param + ":</span> <span class='string'>" + d.params[param] + "</span><br>";
+        }
+        tooltip_html += `<br><center><button class="btn btn-primary" onclick="editLink();">Params</button></center>`;
+        tooltip_html += "</div>";
+        return tooltip_html;
+    }
+
+    function editLink() {
+        clearTimeout(tooltip_hide);
+        tooltip.style("visibility", "hidden");
+        editting_plugin = true;
+        var link = links[hover_link.id];
+        $('#edit-link-modal-title').html(`Editting Edge ${link.id} Parameters`);
+        var modalBody = $('#edit-link-modal-body');
+        modalBody.append("<input type='hidden' id='edit-link-id' value='" + link.id + "' />");
+        for (var param in link.params) {
+            if (!link.params.hasOwnProperty(param)) continue;
+            var paramHTML = "<div class='form-group row'>";
+            paramHTML += "<div class='col-sm-3'><input class='form-control' name='edit-link-param-input-keys[]' placeholder='Parameter Key' value='" + param + "' /></div>";
+            paramHTML += "<div class='col-sm-8'><input class='form-control' name='edit-link-param-input-values[]' placeholder='Parameter Value' value='" + link.params[param] + "'/></div>";
+            paramHTML += "<button type='button' class='btn btn-danger' onclick='$(this).closest(\"div\").remove();'><i class='fa fa-trash'></i></button>";
+            paramHTML += "</div>";
+            modalBody.append(paramHTML);
+        }
+        modalBody.append("<button id='addLinkParamBtn' type='button' class='btn btn-primary' onclick='addLinkParamField();'><i class='fa fa-plus-square'></i> Add Parameter</button>");
+        $('#edit-link-modal').modal('show');
+        $('#edit-link-modal').on('hidden.bs.modal', function() {
+            resetModal();
+        });
+    }
+
+    let selectedNode = {};
+    let selectedRegion = '';
+    let selectedAgent = '';
+
+    function buildRegionList() {
+        let paramHTML = '';
+        $.each(regionData.regions, function(i, v) {
+            if (selectedRegion === '')
+                selectedRegion = v.name;
+            paramHTML += "<option value='" + v.name + "'";
+            if (selectedNode.params.location_region === v.name) { paramHTML += " selected "; selectedRegion = v.name; }
+            paramHTML += ">" + v.name + "</option>";
+        });
+        return paramHTML;
+    }
+
+
+    function buildAgentList() {
+        let paramHTML = '';
+        $.each(agentData.agents, function(i, v) {
+            if (v.region === selectedRegion) {
+                paramHTML += "<option value='" + v.name + "'";
+                if (selectedNode.params.location_agent === v.name) { paramHTML += " selected "; selectedAgent = v.name }
+                paramHTML += ">" + v.name + "</option>";
+            }
+        });
+        return paramHTML;
+    }
+
     function editplugin(d) {
         editting_plugin = true;
         var node = nodes[d.data.node.index];
+        selectedNode = node;
         $('#edit-plugin-modal-title').html("Editting " + node.title);
         var modalBody = $('#edit-plugin-modal-body');
         modalBody.append("<input type='hidden' id='edit-plugin-index' value='" + node.index + "' /><br>");
@@ -227,21 +309,13 @@
             } else if (param === "location_region") {
                 paramHTML += "<div class='col-sm-3'><input class='form-control' disabled name='edit-plugin-param-select-keys[]' placeholder='Parameter Key' value='" + param + "' /></div>";
                 paramHTML += "<div class='col-sm-9'><select id='edit-plugin-" + param + "' class='form-control' name='edit-plugin-param-select-values[]'>";
-                $.each(regionData.regions, function(i, v) {
-                    paramHTML += "<option value='" + v.name + "'";
-                    if (node.params.location_region === v.name) { paramHTML += " selected "; }
-                    paramHTML += ">" + v.name + "</option>";
-                });
-                paramHTML += "</div>";
+                paramHTML += buildRegionList();
+                paramHTML += "</select></div>";
             } else if (param === "location_agent") {
                 paramHTML += "<div class='col-sm-3'><input class='form-control' disabled name='edit-plugin-param-select-keys[]' placeholder='Parameter Key' value='" + param + "' /></div>";
                 paramHTML += "<div class='col-sm-9'><select id='edit-plugin-" + param + "' class='form-control' name='edit-plugin-param-select-values[]'>";
-                $.each(agentData.agents, function(i, v) {
-                    paramHTML += "<option value='" + v.name + "'";
-                    if (node.params.location_agent === v.name) { paramHTML += " selected "; }
-                    paramHTML += ">" + v.name + "</option>";
-                });
-                paramHTML += "</div>";
+                paramHTML += buildAgentList();
+                paramHTML += "</select></div>";
             } else {
                 paramHTML += "<div class='col-sm-3'><input class='form-control' name='edit-plugin-param-input-keys[]' placeholder='Parameter Key' value='" + param + "' /></div>";
                 paramHTML += "<div class='col-sm-8'><input class='form-control' name='edit-plugin-param-input-values[]' placeholder='Parameter Value' value='" + node.params[param] + "'/></div>";
@@ -269,6 +343,10 @@
                 md5hash.val(pluginInfo.md5);
             }
         });
+        $(`#edit-plugin-location_region`).change(function() {
+            selectedRegion = $(`#edit-plugin-location_region`).val();
+            $(`#edit-plugin-location_agent`).html(buildAgentList());
+        });
         $('#edit-plugin-modal').modal('show');
         $('#edit-plugin-modal').on('hidden.bs.modal', function() {
             resetModal();
@@ -282,6 +360,15 @@
         paramHTML += "<button type='button' class='btn btn-danger' onclick='$(this).closest(\"div\").remove();'><i class='fa fa-trash'></i></button>";
         paramHTML += "</div>";
         $(paramHTML).insertBefore( $("#addParamBtn") );
+    }
+
+    function addLinkParamField() {
+        var paramHTML = "<div class='form-group row'>";
+        paramHTML += "<div class='col-sm-2'><input class='form-control' name='edit-link-param-input-keys[]' placeholder='Parameter Key' /></div>";
+        paramHTML += "<div class='col-sm-9'><input class='form-control' name='edit-link-param-input-values[]' placeholder='Parameter Value' /></div>";
+        paramHTML += "<button type='button' class='btn btn-danger' onclick='$(this).closest(\"div\").remove();'><i class='fa fa-trash'></i></button>";
+        paramHTML += "</div>";
+        $(paramHTML).insertBefore( $("#addLinkParamBtn") );
     }
 
     function deleteplugin(d) {
@@ -302,22 +389,27 @@
         resetModal();
     }
 
+    function cancelUpdateLink() {
+        hover_link = null;
+        resetModal();
+    }
+
     function updatePlugin() {
         var index = $('#edit-plugin-index').val();
         var node = nodes[index];
-        var inputParamKeys = []
+        var inputParamKeys = [];
         $('input[name^="edit-plugin-param-input-keys"]').each(function() {
             inputParamKeys.push($(this).val());
         });
-        var inputParamValues = []
+        var inputParamValues = [];
         $('input[name^="edit-plugin-param-input-values"]').each(function() {
             inputParamValues.push($(this).val());
         });
-        var selectParamKeys = []
+        var selectParamKeys = [];
         $('input[name^="edit-plugin-param-select-keys"]').each(function() {
             selectParamKeys.push($(this).val());
         });
-        var selectParamValues = []
+        var selectParamValues = [];
         $('select[name^="edit-plugin-param-select-values"]').each(function() {
             selectParamValues.push($(this).val());
         });
@@ -332,27 +424,66 @@
         resetModal();
     }
 
+    function updateLink() {
+        var index = $('#edit-link-id').val();
+        var link = links[index];
+        var inputParamKeys = [];
+        $('input[name^="edit-link-param-input-keys"]').each(function() {
+            inputParamKeys.push($(this).val());
+        });
+        var inputParamValues = [];
+        $('input[name^="edit-link-param-input-values"]').each(function() {
+            inputParamValues.push($(this).val());
+        });
+        link.params = {};
+        for (var i = 0; i < inputParamKeys.length; i++) {
+            link.params[inputParamKeys[i]] = inputParamValues[i];
+        }
+        hover_link = null;
+        restart();
+        resetModal();
+    }
+
     function resetModal() {
         editting_plugin = false;
         $('#edit-plugin-modal').modal('hide');
         $('#edit-plugin-modal-title').html('');
         $('#edit-plugin-modal-body').html('');
+        $('#edit-link-modal').modal('hide');
+        $('#edit-link-modal-title').html('');
+        $('#edit-link-modal-body').html('');
         if (active_menu != null)
             active_menu.hide();
         active_menu = null;
         active_menu_node = null;
         selected_link = null;
         selected_node = null;
+        selectedNode = {};
+        selectedRegion = '';
+        selectedAgent = '';
         tooltip.style('visibility', 'hidden');
         clearTimeout(tooltip_show);
         restart();
     }
 
     function previewCADL() {
-        editting_plugin = true;
-        updateCADL();
-        $(`#edit-pipeline-name-modal-name`).val(pipelineName);
-        $('#submit-application-modal').modal('show');
+        if (nodes.length > 0) {
+            let allValidNodes = true;
+            $.each(nodes, function (i, v) {
+                if (!checknode(v))
+                    allValidNodes = false;
+            });
+            if (allValidNodes) {
+                editting_plugin = true;
+                updateCADL();
+                $(`#edit-pipeline-name-modal-name`).val(pipelineName);
+                $('#submit-application-modal').modal('show');
+            } else {
+                alert("There are invalid nodes (highlighted in red) that need more information!");
+            }
+        } else {
+            alert("Applications must consist of one or more plugins!");
+        }
     }
 
     $(`#submit-application-modal`).on(`shown.bs.modal`, function() {
@@ -437,17 +568,19 @@
         $.each(links, function(i, v) {
             if (v.right) {
                 let edge = {
-                    'edge_id': '0',
+                    'edge_id': v.id,
                     'node_from': v.source.id,
-                    'node_to': v.target.id
+                    'node_to': v.target.id,
+                    'params': v.params
                 };
                 cadl['edges'].push(edge);
             }
             if (v.left) {
                 let edge = {
-                    'edge_id': '0',
+                    'edge_id': v.id,
                     'node_from': v.target.id,
-                    'node_to': v.source.id
+                    'node_to': v.source.id,
+                    'params': v.params
                 };
                 cadl['edges'].push(edge);
             }
