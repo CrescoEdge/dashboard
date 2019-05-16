@@ -5,18 +5,11 @@ import com.mitchellbosecke.pebble.error.PebbleException;
 import com.mitchellbosecke.pebble.template.PebbleTemplate;
 import io.cresco.dashboard.Plugin;
 import io.cresco.dashboard.filters.AuthenticationFilter;
-import io.cresco.dashboard.models.Alert;
 import io.cresco.dashboard.models.LoginSession;
 import io.cresco.dashboard.services.AlertService;
 import io.cresco.dashboard.services.LoginSessionService;
 import io.cresco.library.plugin.PluginBuilder;
-import io.cresco.library.plugin.PluginService;
 import io.cresco.library.utilities.CLogger;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferencePolicy;
-import org.osgi.service.component.annotations.ServiceScope;
-import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.ws.rs.CookieParam;
 import javax.ws.rs.GET;
@@ -32,22 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 
-@Component(service = Object.class,
-        scope= ServiceScope.PROTOTYPE,
-        property = {
-                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
-                JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
-                "dashboard=alerts"
-        },
-
-        reference = @Reference(
-                name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
-                service=javax.ws.rs.ext.ExceptionMapper.class,
-                target="(dashboard=nfx)",
-                policy=ReferencePolicy.STATIC
-        )
-)
-
+@Path("/dashboard/alerts")
 public class AlertsController {
     private PluginBuilder plugin = null;
     private CLogger logger = null;
@@ -65,7 +43,7 @@ public class AlertsController {
 
 
     @GET
-    @Path("/dashboard/alerts/")
+    //@Path("/")
     @Produces(MediaType.TEXT_HTML)
     public Response index(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {
@@ -92,7 +70,7 @@ public class AlertsController {
     }
 
     @GET
-    @Path("/dashboard/alerts/list")
+    @Path("/list")
     @Produces(MediaType.APPLICATION_JSON)
     public Response list(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {

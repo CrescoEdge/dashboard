@@ -2,17 +2,11 @@ package io.cresco.dashboard.filters;
 
 
 import io.cresco.dashboard.Plugin;
-import io.cresco.dashboard.controllers.ApplicationsController;
 import io.cresco.dashboard.controllers.RootController;
 import io.cresco.dashboard.models.LoginSession;
 import io.cresco.dashboard.services.LoginSessionService;
 import io.cresco.library.plugin.PluginBuilder;
-import io.cresco.library.plugin.PluginService;
 import io.cresco.library.utilities.CLogger;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ServiceScope;
-import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.annotation.security.PermitAll;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -23,28 +17,10 @@ import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
-
-@Component(
-        scope= ServiceScope.PROTOTYPE,
-        property = {
-                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
-                JaxrsWhiteboardConstants.JAX_RS_EXTENSION + "=true",
-                "dashboard=auth"
-        },
-        reference = @Reference(
-                name="io.cresco.library.plugin.PluginService",
-                service=PluginService.class,
-                target="(dashboard=core)"
-        )
-
-)
 
 @Provider
 public class AuthenticationFilter implements ContainerRequestFilter {
@@ -53,8 +29,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     private static Response REDIRECT_LOGOUT;
     //private static CLogger logger;
 
-    private PluginBuilder plugin;
-    private CLogger logger;
+    private static PluginBuilder plugin;
+    private static CLogger logger;
 
 
     @Context
@@ -63,7 +39,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     public AuthenticationFilter() {
 
         try {
-
 
             if(plugin == null) {
                 if(Plugin.pluginBuilder != null) {
@@ -81,6 +56,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
     }
 
+    public static void connectPlugin(PluginBuilder pluginBuilder) {
+        plugin = pluginBuilder;
+        logger = plugin.getLogger(AuthenticationFilter.class.getName(), CLogger.Level.Info);
+
+    }
+
     private Response toLogin(NewCookie redirectCookie) {
         try {
             URI login_uri = new URI("/dashboard/login");
@@ -90,9 +71,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
     }
 
+
     @Override
     public void filter(ContainerRequestContext requestContext) {
         try {
+
 
             //don't bother if not the dashboard
             if(!requestContext.getUriInfo().getPath().startsWith("dashboard")) {

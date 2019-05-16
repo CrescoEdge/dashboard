@@ -8,11 +8,6 @@ import io.cresco.library.data.TopicType;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.utilities.CLogger;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferencePolicy;
-import org.osgi.service.component.annotations.ServiceScope;
-import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.jms.TextMessage;
 import javax.ws.rs.*;
@@ -24,22 +19,7 @@ import java.lang.reflect.Type;
 import java.util.Map;
 
 
-@Component(service = Object.class,
-        scope= ServiceScope.PROTOTYPE,
-        property = {
-                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
-                JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
-                "dashboard=global"
-        },
-
-        reference = @Reference(
-                name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
-                service=javax.ws.rs.ext.ExceptionMapper.class,
-                target="(dashboard=nfx)",
-                policy=ReferencePolicy.STATIC
-        )
-)
-
+@Path("/dashboard/global")
 public class GlobalController {
 
     private PluginBuilder plugin;
@@ -58,7 +38,7 @@ public class GlobalController {
     }
 
     @POST
-    @Path("/dashboard/global/cdp")
+    @Path("/cdp")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public Response cdp(@FormParam("action_id") String actionId,
@@ -174,7 +154,7 @@ public class GlobalController {
     }
 
     @GET
-    @Path("/dashboard/global/resources")
+    @Path("/resources")
     @Produces(MediaType.APPLICATION_JSON)
     public Response resources() {
         logger.trace("Call to resources()");

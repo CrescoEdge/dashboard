@@ -13,11 +13,7 @@ import io.cresco.dashboard.services.LoginSessionService;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.utilities.CLogger;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferencePolicy;
-import org.osgi.service.component.annotations.ServiceScope;
-import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
+
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -28,22 +24,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-
-@Component(service = Object.class,
-        scope= ServiceScope.PROTOTYPE,
-        property = {
-                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
-                JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
-                "dashboard=applications"
-        },
-        reference = @Reference(
-                name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
-                service=javax.ws.rs.ext.ExceptionMapper.class,
-                target="(dashboard=nfx)",
-                policy=ReferencePolicy.STATIC
-        )
-)
-
+@Path("/dashboard/applications")
 public class ApplicationsController {
 
     private PluginBuilder plugin;
@@ -62,7 +43,6 @@ public class ApplicationsController {
 
 
     @GET
-    @Path("/dashboard/applications")
     @Produces(MediaType.TEXT_HTML)
     public Response index(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {
@@ -94,7 +74,7 @@ public class ApplicationsController {
     }
 
     @GET
-    @Path("/dashboard/applications/details/{id}")
+    @Path("/details/{id}")
     @Produces(MediaType.TEXT_HTML)
     public Response application(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID,
                                 @PathParam("id") String id) {
@@ -128,7 +108,7 @@ public class ApplicationsController {
     }
 
     @GET
-    @Path("/dashboard/applications/build")
+    @Path("/build")
     @Produces(MediaType.TEXT_HTML)
     public Response build(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {
@@ -160,27 +140,13 @@ public class ApplicationsController {
     }
 
     @GET
-    @Path("/dashboard/applications/list")
+    @Path("/list")
     @Produces(MediaType.APPLICATION_JSON)
     public Response list() {
         //logger.trace("Call to list()");
         try {
             if (plugin == null)
                 return Response.ok("{}", MediaType.APPLICATION_JSON_TYPE).build();
-            /*
-            MsgEvent request = new MsgEvent(MsgEvent.Type.EXEC, plugin.getRegion(), plugin.getAgent(),
-                    plugin.getPluginID(), "Agent List Request");
-            request.setParam("src_region", plugin.getRegion());
-            request.setParam("src_agent", plugin.getAgent());
-            request.setParam("src_plugin", plugin.getPluginID());
-            request.setParam("dst_region", plugin.getRegion());
-            request.setParam("dst_agent", plugin.getAgent());
-            request.setParam("dst_plugin", "plugin/0");
-            request.setParam("is_regional", Boolean.TRUE.toString());
-            request.setParam("is_global", Boolean.TRUE.toString());
-            request.setParam("globalcmd", "true");
-            */
-
 
             MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.EXEC);
             request.setParam("action", "getgpipelinestatus");
@@ -203,7 +169,7 @@ public class ApplicationsController {
     }
 
     @POST
-    @Path("/dashboard/applications/add")
+    @Path("/add")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public Response add(@FormParam("tenant_id") String tenant,
@@ -212,19 +178,7 @@ public class ApplicationsController {
         try {
             if (plugin == null)
                 return Response.ok("{}", MediaType.APPLICATION_JSON_TYPE).build();
-            /*
-            MsgEvent request = new MsgEvent(MsgEvent.Type.CONFIG, plugin.getRegion(), plugin.getAgent(),
-                    plugin.getPluginID(), "Agent List Request");
-            request.setParam("src_region", plugin.getRegion());
-            request.setParam("src_agent", plugin.getAgent());
-            request.setParam("src_plugin", plugin.getPluginID());
-            request.setParam("dst_region", plugin.getRegion());
-            request.setParam("dst_agent", plugin.getAgent());
-            request.setParam("dst_plugin", "plugin/0");
-            request.setParam("is_regional", Boolean.TRUE.toString());
-            request.setParam("is_global", Boolean.TRUE.toString());
-            request.setParam("globalcmd", "true");
-            */
+
             MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.CONFIG);
             request.setParam("action", "gpipelinesubmit");
             request.setParam("action_tenantid", tenant);
@@ -247,26 +201,14 @@ public class ApplicationsController {
     }
 
     @GET
-    @Path("/dashboard/applications/info/{id}")
+    @Path("/info/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response info(@PathParam("id") String id) {
         logger.trace("Call to info({})", id);
         try {
             if (plugin == null)
                 return Response.ok("{}", MediaType.APPLICATION_JSON_TYPE).build();
-            /*
-            MsgEvent request = new MsgEvent(MsgEvent.Type.EXEC, plugin.getRegion(), plugin.getAgent(),
-                    plugin.getPluginID(), "Agent List Request");
-            request.setParam("src_region", plugin.getRegion());
-            request.setParam("src_agent", plugin.getAgent());
-            request.setParam("src_plugin", plugin.getPluginID());
-            request.setParam("dst_region", plugin.getRegion());
-            request.setParam("dst_agent", plugin.getAgent());
-            request.setParam("dst_plugin", "plugin/0");
-            request.setParam("is_regional", Boolean.TRUE.toString());
-            request.setParam("is_global", Boolean.TRUE.toString());
-            request.setParam("globalcmd", "true");
-            */
+
             MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.EXEC);
             request.setParam("action", "getgpipeline");
             request.setParam("action_pipelineid", id);
@@ -286,7 +228,7 @@ public class ApplicationsController {
     }
 
     @GET
-    @Path("/dashboard/applications/nodeinfo/{inode}/{resource}")
+    @Path("/nodeinfo/{inode}/{resource}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response nodeInfo(@PathParam("inode") String inode_id,
                              @PathParam("resource") String resource_id) {
@@ -294,19 +236,7 @@ public class ApplicationsController {
         try {
             if (plugin == null)
                 return Response.ok("{}", MediaType.APPLICATION_JSON_TYPE).build();
-            /*
-            MsgEvent request = new MsgEvent(MsgEvent.Type.EXEC, plugin.getRegion(), plugin.getAgent(),
-                    plugin.getPluginID(), "Agent List Request");
-            request.setParam("src_region", plugin.getRegion());
-            request.setParam("src_agent", plugin.getAgent());
-            request.setParam("src_plugin", plugin.getPluginID());
-            request.setParam("dst_region", plugin.getRegion());
-            request.setParam("dst_agent", plugin.getAgent());
-            request.setParam("dst_plugin", "plugin/0");
-            request.setParam("is_regional", Boolean.TRUE.toString());
-            request.setParam("is_global", Boolean.TRUE.toString());
-            request.setParam("globalcmd", "true");
-            */
+
             MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.EXEC);
             request.setParam("action", "getisassignmentinfo");
             request.setParam("action_inodeid", inode_id);
@@ -338,26 +268,14 @@ public class ApplicationsController {
     }
 
     @GET
-    @Path("/dashboard/applications/export/{id}")
+    @Path("/export/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response export(@PathParam("id") String id) {
         logger.trace("Call to export({})", id);
         try {
             if (plugin == null)
                 return Response.ok("{}", MediaType.APPLICATION_JSON_TYPE).build();
-            /*
-            MsgEvent request = new MsgEvent(MsgEvent.Type.EXEC, plugin.getRegion(), plugin.getAgent(),
-                    plugin.getPluginID(), "Agent List Request");
-            request.setParam("src_region", plugin.getRegion());
-            request.setParam("src_agent", plugin.getAgent());
-            request.setParam("src_plugin", plugin.getPluginID());
-            request.setParam("dst_region", plugin.getRegion());
-            request.setParam("dst_agent", plugin.getAgent());
-            request.setParam("dst_plugin", "plugin/0");
-            request.setParam("is_regional", Boolean.TRUE.toString());
-            request.setParam("is_global", Boolean.TRUE.toString());
-            request.setParam("globalcmd", "true");
-            */
+
             MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.EXEC);
             request.setParam("action", "getgpipelineexport");
             request.setParam("action_pipelineid", id);
@@ -377,7 +295,7 @@ public class ApplicationsController {
     }
 
     @GET
-    @Path("/dashboard/applications/delete/{id}")
+    @Path("/delete/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response delete(@PathParam("id") String id) {
         logger.trace("Call to delete({})", id);
@@ -392,7 +310,7 @@ public class ApplicationsController {
             if (response == null)
                 return Response.ok("{\"error\":\"Cresco rpc response was null\"}",
                         MediaType.APPLICATION_JSON_TYPE).build();
-            return Response.seeOther(new URI("/dashboard/applications")).cookie().build();
+            return Response.seeOther(new URI("/dashboard")).cookie().build();
         } catch (Exception e) {
             if (plugin != null)
                 logger.error("delete({}) : {}", id, e.getMessage());

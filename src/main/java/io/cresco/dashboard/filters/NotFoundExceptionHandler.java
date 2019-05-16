@@ -3,10 +3,6 @@ package io.cresco.dashboard.filters;
 import com.mitchellbosecke.pebble.PebbleEngine;
 import com.mitchellbosecke.pebble.error.PebbleException;
 import com.mitchellbosecke.pebble.template.PebbleTemplate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ServiceScope;
-import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Context;
@@ -21,20 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-@Component(
-        scope= ServiceScope.PROTOTYPE,
-        property = {
-                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
-                JaxrsWhiteboardConstants.JAX_RS_EXTENSION + "=true",
-                "dashboard=nfx"
-        },
-        reference = @Reference(
-                name="io.cresco.dashboard.filters.AuthenticationFilter",
-                service=javax.ws.rs.container.ContainerRequestFilter.class,
-                target="(dashboard=auth)"
-        )
-
-)
 
 @Provider
 public class NotFoundExceptionHandler implements ExceptionMapper<NotFoundException> {

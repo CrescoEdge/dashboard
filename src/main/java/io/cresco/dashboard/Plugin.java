@@ -5,6 +5,7 @@ import io.cresco.dashboard.controllers.*;
 import io.cresco.dashboard.filters.AuthenticationFilter;
 
 
+import io.cresco.dashboard.filters.NotFoundExceptionHandler;
 import io.cresco.dashboard.metrics.MetricCollector;
 import io.cresco.library.agent.AgentService;
 import io.cresco.library.messaging.MsgEvent;
@@ -14,6 +15,10 @@ import io.cresco.library.plugin.PluginService;
 
 
 import io.cresco.library.utilities.CLogger;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.glassfish.jersey.server.ResourceConfig;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.annotations.*;
@@ -48,6 +53,7 @@ public class Plugin implements PluginService {
     public String repoPath = null;
     private ConfigurationAdmin configurationAdmin;
     private Map<String,Object> map;
+    private Server jettyServer;
 
     @Activate
     void activate(BundleContext context, Map<String,Object> map) {
@@ -127,10 +133,42 @@ public class Plugin implements PluginService {
                     Thread.sleep(1000);
                 }
 
+                ResourceConfig rc = new ResourceConfig()
+                        .register(AuthenticationFilter.class)
+                        .register(NotFoundExceptionHandler.class)
+                        .register(RootController.class)
+                        .register(AlertsController.class)
+                        .register(AgentsController.class)
+                        .register(PluginsController.class)
+                        .register(RegionsController.class)
+                        .register(GlobalController.class)
+                        .register(ApplicationsController.class);
+
+
+                ServletContextHandler context
+                        = new ServletContextHandler(ServletContextHandler.SESSIONS);
+                context.setContextPath("/");
+                jettyServer = new Server(8181);
+                jettyServer.setHandler(context);
+                ServletHolder jerseyServlet = new ServletHolder(new
+                        org.glassfish.jersey.servlet.ServletContainer(rc));
+                jerseyServlet.setInitOrder(0);
+
+                context.addServlet(jerseyServlet, "/*");
+
+                try {
+                    jettyServer.start();
+                    //jettyServer.join();
+                } catch (Exception e) {
+                   logger.error("Could not start embedded web server");
+                    e.printStackTrace();
+                }
+
                 pluginBuilder.setIsActive(true);
 
-                //MetricCollector metricCollector = new MetricCollector(pluginBuilder);
-                //metricCollector.setKpiListener();
+
+
+
 
             }
             return true;
@@ -143,6 +181,13 @@ public class Plugin implements PluginService {
 
     @Override
     public boolean isStopped() {
+
+        if(jettyServer != null) {
+            if(!jettyServer.isStopped()) {
+                jettyServer.destroy();
+            }
+        }
+
         if(pluginBuilder != null) {
             pluginBuilder.setExecutor(null);
             pluginBuilder.setIsActive(false);

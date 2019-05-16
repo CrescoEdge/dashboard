@@ -3,22 +3,16 @@ package io.cresco.dashboard.controllers;
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
-import com.google.gson.Gson;
 import com.mitchellbosecke.pebble.PebbleEngine;
 import com.mitchellbosecke.pebble.error.PebbleException;
 import com.mitchellbosecke.pebble.template.PebbleTemplate;
-import io.cresco.dashboard.Activator;
 import io.cresco.dashboard.Plugin;
 import io.cresco.dashboard.filters.AuthenticationFilter;
 import io.cresco.dashboard.models.LoginSession;
 import io.cresco.dashboard.services.LoginSessionService;
-import io.cresco.library.agent.AgentService;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.PluginBuilder;
-import io.cresco.library.plugin.PluginService;
 import io.cresco.library.utilities.CLogger;
-import org.osgi.service.component.annotations.*;
-import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -34,23 +28,8 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 
-@Component(service = Object.class,
-        scope= ServiceScope.PROTOTYPE,
-        property = {
-                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
-                JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
-                "dashboard=agents"
-        },
 
-        reference = @Reference(
-                name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
-                service=javax.ws.rs.ext.ExceptionMapper.class,
-                target="(dashboard=nfx)",
-                policy=ReferencePolicy.STATIC
-        )
-)
-
-
+@Path("/dashboard/agents")
 public class AgentsController {
     private PluginBuilder plugin;
     private CLogger logger;
@@ -66,7 +45,7 @@ public class AgentsController {
     }
 
     @GET
-    @Path("/dashboard/agents/")
+    //@Path("/")
     @Produces(MediaType.TEXT_HTML)
     public Response index(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {
@@ -100,7 +79,7 @@ public class AgentsController {
     }
 
     @GET
-    @Path("/dashboard/agents/details/{region}/{agent}")
+    @Path("/details/{region}/{agent}")
     @Produces(MediaType.TEXT_HTML)
     public Response details(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID,
                             @PathParam("region") String region,
@@ -136,7 +115,7 @@ public class AgentsController {
     }
 
     @GET
-    @Path("/dashboard/agents/list")
+    @Path("/list")
     @Produces(MediaType.APPLICATION_JSON)
     public Response list() {
         //logger.trace("Call to list()");
@@ -188,7 +167,7 @@ public class AgentsController {
     }
 
     @GET
-    @Path("/dashboard/agents/listlocal")
+    @Path("/listlocal")
     @Produces(MediaType.APPLICATION_JSON)
     public Response listLocal() {
         logger.trace("Call to listLocal()");
@@ -208,7 +187,7 @@ public class AgentsController {
     }
 
     @GET
-    @Path("/dashboard/agents/list/{region}")
+    @Path("/list/{region}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response listByRegion(@PathParam("region") String region) {
         logger.trace("Call to listByRegion({})", region);
@@ -247,7 +226,7 @@ public class AgentsController {
     }
 
     @GET
-    @Path("/dashboard/agents/resources/{region}/{agent}")
+    @Path("/resources/{region}/{agent}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response resources(@PathParam("region") String region,
                               @PathParam("agent") String agent) {
@@ -292,7 +271,7 @@ public class AgentsController {
 
 
     @GET
-    @Path("/dashboard/agents/getfreeport/{region}/{agent}/{count}")
+    @Path("/getfreeport/{region}/{agent}/{count}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getfreeport(@PathParam("region") String region,
                                 @PathParam("agent") String agent,

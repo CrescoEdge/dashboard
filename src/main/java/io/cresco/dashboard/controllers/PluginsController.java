@@ -18,11 +18,7 @@ import io.cresco.dashboard.services.LoginSessionService;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.utilities.CLogger;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferencePolicy;
-import org.osgi.service.component.annotations.ServiceScope;
-import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
+
 
 import java.lang.reflect.Type;
 
@@ -33,23 +29,7 @@ import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
 
-
-@Component(service = Object.class,
-        scope= ServiceScope.PROTOTYPE,
-        property = {
-                JaxrsWhiteboardConstants.JAX_RS_APPLICATION_SELECT + "=(osgi.jaxrs.name=.default)",
-                JaxrsWhiteboardConstants.JAX_RS_RESOURCE + "=true",
-                "dashboard=plugins"
-        },
-
-        reference = @Reference(
-                name="io.cresco.dashboard.filters.NotFoundExceptionHandler",
-                service=javax.ws.rs.ext.ExceptionMapper.class,
-                target="(dashboard=nfx)",
-                policy=ReferencePolicy.STATIC
-        )
-)
-
+@Path("/dashboard/plugins")
 public class PluginsController {
     private PluginBuilder plugin;
     private CLogger logger;
@@ -74,7 +54,6 @@ public class PluginsController {
 
 
     @GET
-    @Path("/dashboard/plugins")
     @Produces(MediaType.TEXT_HTML)
     public Response index(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID) {
         try {
@@ -106,7 +85,7 @@ public class PluginsController {
     }
 
     @GET
-    @Path("/dashboard/plugins/details/{region}/{agent}/{plugin:.*}")
+    @Path("/details/{region}/{agent}/{plugin:.*}")
     @Produces(MediaType.TEXT_HTML)
     public Response details(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID,
                             @PathParam("region") String region,
@@ -144,7 +123,7 @@ public class PluginsController {
     }
 
     @GET
-    @Path("/dashboard/plugins/info/{region}/{agent}/{plugin:.*}")
+    @Path("/info/{region}/{agent}/{plugin:.*}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response info(@PathParam("region") String region,
                          @PathParam("agent") String agent,
@@ -194,7 +173,7 @@ public class PluginsController {
     }
 
     @GET
-    @Path("/dashboard/plugins/kpi/{region}/{agent}/{plugin:.*}")
+    @Path("/kpi/{region}/{agent}/{plugin:.*}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response kpi(@PathParam("region") String region,
                          @PathParam("agent") String agent,
@@ -237,7 +216,7 @@ public class PluginsController {
     }
 
     @GET
-    @Path("/dashboard/plugins/list")
+    @Path("/list")
     @Produces(MediaType.APPLICATION_JSON)
     public Response list() {
         logger.trace("Call to list()");
@@ -276,7 +255,7 @@ public class PluginsController {
     }
 
     @GET
-    @Path("/dashboard/plugins/list/{region}")
+    @Path("/list/{region}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response listByRegion(@PathParam("region") String region) {
         logger.trace("Call to listByRegion()");
@@ -315,7 +294,7 @@ public class PluginsController {
     }
 
     @GET
-    @Path("/dashboard/plugins/list/{region}/{agent}")
+    @Path("/list/{region}/{agent}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response listByAgent(@PathParam("region") String region,
                                 @PathParam("agent") String agent) {
@@ -359,7 +338,7 @@ public class PluginsController {
 
 
     @GET
-    @Path("/dashboard/plugins/listbytype/{id}/{value}")
+    @Path("/listbytype/{id}/{value}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response listByPluginType(@PathParam("id") String actionPluginTypeId,
                                 @PathParam("value") String actionpluginTypeValue) {
@@ -401,7 +380,7 @@ public class PluginsController {
 
 
     @POST
-    @Path("/dashboard/plugins/uploadplugin")
+    @Path("/uploadplugin")
     //@Consumes(MediaType.MULTIPART_FORM_DATA)
     @Consumes("application/java-archive")
     @Produces(MediaType.APPLICATION_JSON)
@@ -562,7 +541,7 @@ public class PluginsController {
 
 
     @GET
-    @Path("/dashboard/plugins/listrepo")
+    @Path("/listrepo")
     @Produces(MediaType.APPLICATION_JSON)
     public Response listRepo() {
         logger.trace("Call to listRepo()");
@@ -600,7 +579,7 @@ public class PluginsController {
     }
 
     @GET
-    @Path("/dashboard/plugins/local")
+    @Path("/local")
     @Produces(MediaType.APPLICATION_JSON)
     public Response local() {
         try {
@@ -652,7 +631,7 @@ public class PluginsController {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("/dashboard/plugins/add/{json:.*}")
+    @Path("/add/{json:.*}")
     public Response add(@PathParam("json") String json) {
         JsonElement jElement = new JsonParser().parse(json);
         JsonObject jObject = jElement.getAsJsonObject();
