@@ -54,6 +54,7 @@ public class Plugin implements PluginService {
     private ConfigurationAdmin configurationAdmin;
     private Map<String,Object> map;
     private Server jettyServer;
+    private ServletHolder jerseyServlet;
 
     @Activate
     void activate(BundleContext context, Map<String,Object> map) {
@@ -150,9 +151,11 @@ public class Plugin implements PluginService {
                 context.setContextPath("/");
                 jettyServer = new Server(8181);
                 jettyServer.setHandler(context);
-                ServletHolder jerseyServlet = new ServletHolder(new
+                jerseyServlet = new ServletHolder(new
                         org.glassfish.jersey.servlet.ServletContainer(rc));
                 jerseyServlet.setInitOrder(0);
+
+
 
                 context.addServlet(jerseyServlet, "/*");
 
@@ -184,7 +187,15 @@ public class Plugin implements PluginService {
 
         if(jettyServer != null) {
             if(!jettyServer.isStopped()) {
-                jettyServer.destroy();
+                try {
+
+
+                    //jettyServer.destroy();
+                    //jettyServer.stop();
+                } catch (Exception ex) {
+                    logger.error("embedded web server shutdown error : " + ex.getMessage());
+                    ex.printStackTrace();
+                }
             }
         }
 
