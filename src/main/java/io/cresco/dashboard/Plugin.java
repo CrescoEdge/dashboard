@@ -6,7 +6,6 @@ import io.cresco.dashboard.filters.AuthenticationFilter;
 
 
 import io.cresco.dashboard.filters.NotFoundExceptionHandler;
-import io.cresco.dashboard.metrics.MetricCollector;
 import io.cresco.library.agent.AgentService;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.Executor;
@@ -22,15 +21,11 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.annotations.*;
-import org.osgi.service.http.HttpService;
 
 import java.io.File;
-import java.io.OutputStream;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Logger;
 
 @Component(
         service = { PluginService.class },
