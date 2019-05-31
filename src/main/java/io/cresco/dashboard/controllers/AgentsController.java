@@ -17,13 +17,12 @@ import io.cresco.library.utilities.CLogger;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
+import java.io.*;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
+import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -113,6 +112,67 @@ public class AgentsController {
             return Response.ok("Server error: " + e.getMessage()).build();
         }
     }
+
+
+    /*
+    @Override
+    public MsgEvent executeEXEC(MsgEvent incoming) {
+
+            switch (incoming.getParam("action")) {
+
+                case "getlog":
+                    return getLog(incoming);
+
+                default:
+                    logger.error("Unknown configtype found {} for {}:", incoming.getParam("action"), incoming.getMsgType().toString());
+                    logger.error(incoming.getParams().toString());
+                    break;
+            }
+            return null;
+        }
+     */
+
+    @GET
+    @Path("/log/{region}/{agent}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getlog(@PathParam("region") String region,
+                              @PathParam("agent") String agent) {
+        logger.trace("Call to resources({}, {})", region, agent);
+        try {
+            if (plugin == null)
+                return Response.ok("{\"regions\":[]}", MediaType.APPLICATION_JSON_TYPE).build();
+
+
+            MsgEvent request = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.EXEC, region, agent);
+            request.setParam("action", "getlog");
+            MsgEvent response = plugin.sendRPC(request);
+            if (response == null)
+                return Response.ok("{\"error\":\"Cresco rpc response was null\"}",
+                        MediaType.APPLICATION_JSON_TYPE).build();
+
+            List<String> logFileList = response.getFileList();
+
+            if(logFileList.size() > 0) {
+
+                java.nio.file.Path filePath = Paths.get(logFileList.get(0));
+                if (filePath.toFile().exists()) {
+                    InputStream targetStream = new FileInputStream(filePath.toFile());
+                    return Response.ok(targetStream, "txt").build();
+                }
+            }
+
+            return Response.ok("Log Not Found", MediaType.APPLICATION_JSON_TYPE).build();
+
+        } catch (Exception e) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            if (plugin != null)
+                logger.error("resources({}, {}) : {}", region, agent, sw.toString());
+            return Response.ok("{\"regions\":[]}", MediaType.APPLICATION_JSON_TYPE).build();
+        }
+    }
+
 
     @GET
     @Path("/list")
