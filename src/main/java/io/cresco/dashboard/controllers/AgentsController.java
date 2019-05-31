@@ -157,7 +157,7 @@ public class AgentsController {
                 java.nio.file.Path filePath = Paths.get(logFileList.get(0));
                 if (filePath.toFile().exists()) {
                     InputStream targetStream = new FileInputStream(filePath.toFile());
-                    return Response.ok(targetStream, "txt").build();
+                    return Response.ok(targetStream, MediaType.APPLICATION_JSON_TYPE).build();
                 }
             }
 
