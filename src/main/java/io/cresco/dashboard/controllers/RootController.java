@@ -145,6 +145,13 @@ public class RootController {
                 }
             }
             LoginSession loginSession = LoginSessionService.create(username.trim(), rememberMe != null);
+            /*
+            if(loginSession == null) {
+                logger.error("LOGIN SESSION NULL");
+            } else {
+                logger.error("LOGIN SESSION ID: " + loginSession.getId());
+            }
+            */
             return Response.seeOther(new URI(redirect))
                     .cookie(new NewCookie(AuthenticationFilter.SESSION_COOKIE_NAME, loginSession.getId(), null, null, null, 60 * 60 * 24 * 365 * 10, false))
                     .build();

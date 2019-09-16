@@ -12,8 +12,10 @@ import java.util.Date;
 public class LoginSessionService {
     public static synchronized LoginSession create(String username, Boolean rememberMe) {
         Session session = SessionFactoryManager.getSession();
-        if (session == null)
+        if (session == null) {
+            //System.out.println("SESSION == null, returning null");
             return null;
+        }
         try {
             session.getTransaction().begin();
             LoginSession object = new LoginSession( username, rememberMe );
@@ -21,9 +23,14 @@ public class LoginSessionService {
             session.getTransaction().commit();
             return object;
         } catch (Exception e) {
+            //System.out.println("Ex: " + e.getMessage());
+            //System.out.println("STATUS: " + session.getTransaction().getStatus().name());
+            e.printStackTrace();
             if (session.getTransaction().getStatus() == TransactionStatus.ACTIVE ||
-                    session.getTransaction().getStatus() == TransactionStatus.MARKED_ROLLBACK)
+                    session.getTransaction().getStatus() == TransactionStatus.MARKED_ROLLBACK) {
                 session.getTransaction().rollback();
+            }
+            //System.out.println("ACTIVE OR ROLLBACK, returning null");
             return null;
         } finally {
             try {

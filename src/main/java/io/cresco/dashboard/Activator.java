@@ -22,6 +22,14 @@ public class Activator implements BundleActivator {
 
         System.setProperty("org.apache.aries.logging.provider", "slf4j");
 
+        //java 11
+        System.setProperty("javax.xml.bind.JAXBContextFactory","com.sun.xml.bind.v2.ContextFactory");
+        System.setProperty("javax.xml.bind.context.factory","com.sun.xml.bind.v2.ContextFactory");
+
+
+
+        //com.sun.xml.bind.v2.ContextFactory
+
         /*
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
