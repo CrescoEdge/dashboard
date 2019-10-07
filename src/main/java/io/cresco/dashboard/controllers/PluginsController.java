@@ -369,7 +369,7 @@ public class PluginsController {
     @POST
     @Path("/uploadplugin")
     //@Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Consumes("application/java-archive")
+    @Consumes({"application/java-archive","application/x-java-archive"})
     @Produces(MediaType.APPLICATION_JSON)
     public Response uploadFile(
             //FormDataMultiPart formDataMultiPart) {
