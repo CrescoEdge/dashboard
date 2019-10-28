@@ -6,6 +6,8 @@ import io.cresco.dashboard.filters.AuthenticationFilter;
 
 
 import io.cresco.dashboard.filters.NotFoundExceptionHandler;
+import io.cresco.dashboard.test.Asyncpoll;
+import io.cresco.dashboard.websockets.MyEchoServlet;
 import io.cresco.library.agent.AgentService;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.Executor;
@@ -116,7 +118,7 @@ public class Plugin implements PluginService {
     @Override
     public boolean isStarted() {
         try {
-            //this will be called twice due to JAX-RS-Connector
+
             if(pluginBuilder == null) {
                 pluginBuilder = new PluginBuilder(this.getClass().getName(), context, map);
                 this.logger = pluginBuilder.getLogger(Plugin.class.getName(), CLogger.Level.Info);
@@ -138,21 +140,29 @@ public class Plugin implements PluginService {
                         .register(PluginsController.class)
                         .register(RegionsController.class)
                         .register(GlobalController.class)
-                        .register(ApplicationsController.class);
+                        .register(ApplicationsController.class)
+                        .register(Asyncpoll.class);
+
+
 
 
                 ServletContextHandler context
                         = new ServletContextHandler(ServletContextHandler.SESSIONS);
                 context.setContextPath("/");
+
+
                 jettyServer = new Server(8181);
                 jettyServer.setHandler(context);
+
+
+
                 jerseyServlet = new ServletHolder(new
                         org.glassfish.jersey.servlet.ServletContainer(rc));
                 jerseyServlet.setInitOrder(0);
-
-
+                jerseyServlet.setAsyncSupported(true);
 
                 context.addServlet(jerseyServlet, "/*");
+                //context.addServlet(MyEchoServlet.class, "/*");
 
                 try {
                     jettyServer.start();
