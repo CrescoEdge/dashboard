@@ -34,7 +34,7 @@ public class SessionFactoryManager {
 
         settings.put("hibernate.connection.driver_class","org.h2.Driver");
         settings.put("dialect","org.hibernate.dialect.H2Dialect");
-        settings.put("hibernate.connection.url","jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false");
+        settings.put("hibernate.connection.url","jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
         settings.put(Environment.DRIVER, "org.h2.Driver");
         settings.put(Environment.DIALECT, "org.hibernate.dialect.H2Dialect");
 
