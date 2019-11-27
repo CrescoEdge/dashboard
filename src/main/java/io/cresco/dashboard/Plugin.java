@@ -7,7 +7,7 @@ import io.cresco.dashboard.filters.AuthenticationFilter;
 
 import io.cresco.dashboard.filters.NotFoundExceptionHandler;
 import io.cresco.dashboard.test.Asyncpoll;
-import io.cresco.dashboard.websockets.MyEchoServlet;
+import io.cresco.dashboard.websockets.EventSocket;
 import io.cresco.library.agent.AgentService;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.Executor;
@@ -17,8 +17,11 @@ import io.cresco.library.plugin.PluginService;
 
 import io.cresco.library.utilities.CLogger;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
+import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.ConfigurationAdmin;
@@ -144,8 +147,6 @@ public class Plugin implements PluginService {
                         .register(Asyncpoll.class);
 
 
-
-
                 ServletContextHandler context
                         = new ServletContextHandler(ServletContextHandler.SESSIONS);
                 context.setContextPath("/");
@@ -161,8 +162,16 @@ public class Plugin implements PluginService {
                 jerseyServlet.setInitOrder(0);
                 jerseyServlet.setAsyncSupported(true);
 
+
                 context.addServlet(jerseyServlet, "/*");
                 //context.addServlet(MyEchoServlet.class, "/*");
+
+                ServerContainer wscontainer = WebSocketServerContainerInitializer.configureContext(context);
+
+                // Add WebSocket endpoint to javax.websocket layer
+                wscontainer.addEndpoint(EventSocket.class);
+
+                //startWS();
 
                 try {
                     jettyServer.start();
@@ -185,6 +194,39 @@ public class Plugin implements PluginService {
             ex.printStackTrace();
             return false;
         }
+    }
+
+    private void startWS() {
+
+        Server server = new Server();
+        ServerConnector connector = new ServerConnector(server);
+        connector.setPort(8182);
+        server.addConnector(connector);
+
+        // Setup the basic application "context" for this application at "/"
+        // This is also known as the handler tree (in jetty speak)
+        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+        context.setContextPath("/");
+        server.setHandler(context);
+
+        try
+        {
+            // Initialize javax.websocket layer
+            ServerContainer wscontainer = WebSocketServerContainerInitializer.configureContext(context);
+
+            // Add WebSocket endpoint to javax.websocket layer
+            wscontainer.addEndpoint(EventSocket.class);
+
+            server.start();
+            //server.dump(System.err);
+            //server.join();
+        }
+        catch (Throwable t)
+        {
+            t.printStackTrace(System.err);
+        }
+
+
     }
 
     @Override
