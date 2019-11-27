@@ -60,14 +60,9 @@ public class LogStreamer
                     textMessage.setStringProperty("loglevel", loglevel);
                     textMessage.setText(message);
                          */
-                        String location = null;
-                        if(textMessage.getStringProperty("plugin_id") != null) {
-                            location = textMessage.getStringProperty("region_id") + "_" + textMessage.getStringProperty("agent_id") + "_" + textMessage.getStringProperty("plugin_id");
-                        } else {
-                            location = textMessage.getStringProperty("region_id") + "_" + textMessage.getStringProperty("agent_id");
-                        }
 
-                        String messageString = location + " " + textMessage.getStringProperty("loglevel") + " " + textMessage.getText();
+
+                        String messageString = textMessage.getStringProperty("region_id") + "_" + textMessage.getStringProperty("agent_id") + " " + textMessage.getStringProperty("loglevel") + " " + textMessage.getText();
                         sess.getAsyncRemote().sendObject(messageString);
                     }
 
