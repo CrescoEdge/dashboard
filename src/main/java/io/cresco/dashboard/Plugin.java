@@ -171,7 +171,7 @@ public class Plugin implements PluginService {
                 // Jetty DoSFilter, wrapped so we can set init parameters
                 FilterHolder holder = new FilterHolder( DoSFilter.class );
                 // see DoSFilter Javadoc for names and meanings of init parameters
-                holder.setInitParameter("maxRequestsPerSec", "25"); // "1" for testing
+                holder.setInitParameter("maxRequestsPerSec", "100"); // "1" for testing
                 holder.setInitParameter("delayMs", "200"); // "-1" to reject excess request
                 holder.setInitParameter("remotePort", "false"); // "true" may be useful
 
