@@ -17,8 +17,10 @@ import io.cresco.library.plugin.PluginService;
 
 import io.cresco.library.utilities.CLogger;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.servlets.DoSFilter;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -26,8 +28,10 @@ import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.annotations.*;
 
+import javax.servlet.DispatcherType;
 import java.io.File;
 import java.util.Dictionary;
+import java.util.EnumSet;
 import java.util.Hashtable;
 import java.util.Map;
 
@@ -161,6 +165,17 @@ public class Plugin implements PluginService {
                 jerseyServlet.setInitOrder(0);
                 jerseyServlet.setAsyncSupported(true);
 
+
+                // add filters
+                EnumSet<DispatcherType> SCOPE = EnumSet.of(DispatcherType.REQUEST);
+                // Jetty DoSFilter, wrapped so we can set init parameters
+                FilterHolder holder = new FilterHolder( DoSFilter.class );
+                // see DoSFilter Javadoc for names and meanings of init parameters
+                holder.setInitParameter("maxRequestsPerSec", "10"); // "1" for testing
+                holder.setInitParameter("delayMs", "200"); // "-1" to reject excess request
+                holder.setInitParameter("remotePort", "false"); // "true" may be useful
+
+                context.addFilter( holder, "/*", SCOPE );
 
                 context.addServlet(jerseyServlet, "/*");
                 //context.addServlet(MyEchoServlet.class, "/*");
