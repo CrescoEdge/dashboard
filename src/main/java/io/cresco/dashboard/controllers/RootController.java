@@ -64,18 +64,25 @@ public class RootController {
 
 
             Map<String, Object> context = new HashMap<>();
-            try {
-                context.put("user", loginSession.getUsername());
-                context.put("section", "root");
-                context.put("page", "index");
-            } catch(Exception ex) {
-                ex.printStackTrace();
-            }
+                try {
 
-            Writer writer = new StringWriter();
-            compiledTemplate.evaluate(writer, context);
+                    String userName = "API Session";
+                    if(loginSession != null) {
+                        userName = loginSession.getUsername();
+                    }
 
-            return Response.ok(writer.toString()).build();
+                    context.put("user", userName);
+                    context.put("section", "root");
+                    context.put("page", "index");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
+                Writer writer = new StringWriter();
+                compiledTemplate.evaluate(writer, context);
+
+                return Response.ok(writer.toString()).build();
+
         } catch (PebbleException e) {
             return Response.ok("PebbleException: " + e.getMessage()).build();
         } catch (IOException e) {
