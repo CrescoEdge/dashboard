@@ -97,6 +97,16 @@ public class Plugin implements PluginService {
     }
 
     @Override
+    public boolean isActive() {
+        return pluginBuilder.isActive();
+    }
+
+    @Override
+    public void setIsActive(boolean isActive) {
+        pluginBuilder.setIsActive(isActive);
+    }
+
+    @Override
     public boolean inMsg(MsgEvent incoming) {
         pluginBuilder.msgIn(incoming);
         return true;
