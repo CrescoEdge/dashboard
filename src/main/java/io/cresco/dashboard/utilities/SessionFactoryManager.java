@@ -1,5 +1,6 @@
 package io.cresco.dashboard.utilities;
 
+import io.cresco.dashboard.Plugin;
 import io.cresco.dashboard.models.Alert;
 import io.cresco.dashboard.models.LoginSession;
 import org.hibernate.Session;
@@ -31,11 +32,11 @@ public class SessionFactoryManager {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-
+        String dataDirectory = Plugin.pluginBuilder.getPluginDataDirectory();
         settings.put("hibernate.connection.driver_class","org.h2.Driver");
         settings.put("dialect","org.hibernate.dialect.H2Dialect");
         //settings.put("hibernate.connection.url","jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
-        settings.put("hibernate.connection.url","jdbc:h2:./cresco-data/dashboard-db/h2db;DB_CLOSE_DELAY=-1");
+        settings.put("hibernate.connection.url","jdbc:h2:" + dataDirectory + "/dashboard-db/h2db;DB_CLOSE_DELAY=-1");
 
         settings.put(Environment.DRIVER, "org.h2.Driver");
         settings.put(Environment.DIALECT, "org.hibernate.dialect.H2Dialect");

@@ -176,6 +176,7 @@ public class Plugin implements PluginService {
                 jerseyServlet.setAsyncSupported(true);
 
 
+
                 // add filters
                 EnumSet<DispatcherType> SCOPE = EnumSet.of(DispatcherType.REQUEST);
                 // Jetty DoSFilter, wrapped so we can set init parameters
@@ -184,7 +185,6 @@ public class Plugin implements PluginService {
                 holder.setInitParameter("maxRequestsPerSec", "100"); // "1" for testing
                 holder.setInitParameter("delayMs", "200"); // "-1" to reject excess request
                 holder.setInitParameter("remotePort", "false"); // "true" may be useful
-
                 context.addFilter( holder, "/*", SCOPE );
 
                 context.addServlet(jerseyServlet, "/*");
