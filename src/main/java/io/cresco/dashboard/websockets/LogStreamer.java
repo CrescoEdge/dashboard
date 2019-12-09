@@ -3,6 +3,7 @@ package io.cresco.dashboard.websockets;
 import io.cresco.dashboard.Plugin;
 import io.cresco.dashboard.controllers.AgentsController;
 import io.cresco.library.data.TopicType;
+import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.utilities.CLogger;
 
@@ -16,7 +17,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @ClientEndpoint
-@ServerEndpoint(value="/dashboard/logstream/")
+@ServerEndpoint(value="/dashboard/logstream")
 public class LogStreamer
 {
     private static final Set<Session> sessions = Collections.synchronizedSet(new HashSet<>());
@@ -79,22 +80,40 @@ public class LogStreamer
     }
 
     @OnMessage
-    public void onWebSocketText(String message)
+    public void onWebSocketText(Session sess, String message)
     {
         logger.info("Received TEXT message: " + message);
-        //System.out.println("Received TEXT message: " + message);
-        //broadcast(message);
 
-        /*
-        try {
-            TextMessage textMessage = Plugin.pluginBuilder.getAgentService().getDataPlaneService().createTextMessage();
-            textMessage.setText("FROM QUEUE: " + message);
-            Plugin.pluginBuilder.getAgentService().getDataPlaneService().sendMessage(TopicType.AGENT, textMessage);
+        String[] sst = message.split(",");
+        if(sst.length == 4) {
+            String region_id = sst[0];
+            String agent_id = sst[1];
+            String baseclass = sst[2];
+            String loglevel = sst[3];
+            MsgEvent req = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG, region_id, agent_id);
+            req.setParam("action","setloglevel");
+            req.setParam("baseclassname", baseclass);
+            req.setParam("loglevel", loglevel);
 
-        } catch (Exception ex) {
-            ex.printStackTrace();
+            MsgEvent resp = plugin.sendRPC(req);
+            String respMessage = "Error setting loglevel";
+            if(resp != null) {
+                if(resp.paramsContains("status_code")) {
+                    if(resp.getParam("status_code").equals("7")) {
+                        respMessage = "set loglevel: " + loglevel + " for baseclass: " + baseclass + " on region_id:" + region_id + " agent_id:" + agent_id;
+                    } else {
+                        if(resp.paramsContains("status_code")) {
+                            respMessage = "could not set loglevel status_code: " + resp.getParam("status_code") + " status_desc: " + resp.getParam("status_desc");
+                        } else {
+                            respMessage = "could not set loglevel status_code: " + resp.getParam("status_code");
+                        }
+                    }
+                }
+            }
+            sess.getAsyncRemote().sendObject(respMessage);
+
         }
-         */
+
     }
 
     @OnClose
