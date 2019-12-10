@@ -63,7 +63,7 @@ public class LogStreamer
                          */
 
 
-                        String messageString = textMessage.getStringProperty("region_id") + "_" + textMessage.getStringProperty("agent_id") + " " + textMessage.getStringProperty("loglevel") + " " + textMessage.getText();
+                        String messageString = textMessage.getStringProperty("region_id") + "_" + textMessage.getStringProperty("agent_id") + " [ " + textMessage.getStringProperty("logid") + "] " + textMessage.getStringProperty("loglevel") + " " + textMessage.getText();
                         sess.getAsyncRemote().sendObject(messageString);
                     }
 
