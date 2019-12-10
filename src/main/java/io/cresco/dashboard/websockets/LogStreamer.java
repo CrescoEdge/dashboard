@@ -90,6 +90,11 @@ public class LogStreamer
             String agent_id = sst[1];
             String baseclass = sst[2];
             String loglevel = sst[3];
+
+            if(!isAgentLogDP(region_id, agent_id)) {
+                setAgentLogDP(region_id,agent_id,true);
+            }
+
             MsgEvent req = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG, region_id, agent_id);
             req.setParam("action","setloglevel");
             req.setParam("baseclassname", baseclass);
@@ -129,6 +134,46 @@ public class LogStreamer
     {
         cause.printStackTrace(System.err);
     }
+
+    private boolean isAgentLogDP(String region_id, String agent_id) {
+        boolean isEnable = false;
+        try {
+            MsgEvent req = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG, region_id, agent_id);
+            req.setParam("action","getislogdp");
+            MsgEvent resp = plugin.sendRPC(req);
+            if(resp != null) {
+                if(resp.paramsContains("islogdp")) {
+                    isEnable = Boolean.parseBoolean(resp.getParam("islogdp"));
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return isEnable;
+    }
+
+    private boolean setAgentLogDP(String region_id, String agent_id, boolean isEnabled) {
+        boolean isEnable = false;
+        try {
+            MsgEvent req = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG, region_id, agent_id);
+            req.setParam("action","setlogdp");
+            req.setParam("setlogdp",Boolean.TRUE.toString());
+
+            MsgEvent resp = plugin.sendRPC(req);
+            if(resp != null) {
+                if(resp.paramsContains("status_code")) {
+                    int statusCode = Integer.parseInt(resp.getParam("status_code"));
+                    if(statusCode == 7) {
+                        isEnable = true;
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return isEnable;
+    }
+
 
     public void broadcast(String message) {
 
