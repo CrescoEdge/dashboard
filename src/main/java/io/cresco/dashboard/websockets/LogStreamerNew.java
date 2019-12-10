@@ -14,17 +14,18 @@ import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 @ClientEndpoint
-@ServerEndpoint(value="/dashboard/logstream")
-public class LogStreamer
+@ServerEndpoint(value="/dashboard/logstream/{region}/{agent}")
+public class LogStreamerNew
 {
     private static final Set<Session> sessions = Collections.synchronizedSet(new HashSet<>());
     private PluginBuilder plugin;
     private CLogger logger;
 
-    public LogStreamer() {
+    public LogStreamerNew() {
 
         if(plugin == null) {
             if(Plugin.pluginBuilder != null) {
@@ -40,7 +41,13 @@ public class LogStreamer
     {
         sessions.add(sess);
         //System.out.println("Socket Connected: " + sess);
-        logger.info("Socket Connected: " + sess);
+
+        Map<String,String> pathparams = sess.getPathParameters();
+
+        String region_id = pathparams.get("region");
+        String agent_id = pathparams.get("agent");
+
+        logger.info("Socket Connected: " + sess + " region: " + region_id + " agent: " + agent_id);
 
         MessageListener ml = new MessageListener() {
 

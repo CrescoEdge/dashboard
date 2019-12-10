@@ -7,7 +7,7 @@ import io.cresco.dashboard.filters.AuthenticationFilter;
 
 import io.cresco.dashboard.filters.NotFoundExceptionHandler;
 import io.cresco.dashboard.test.Asyncpoll;
-import io.cresco.dashboard.websockets.LogStreamer;
+import io.cresco.dashboard.websockets.LogSocket;
 import io.cresco.library.agent.AgentService;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.Executor;
@@ -193,7 +193,8 @@ public class Plugin implements PluginService {
                 ServerContainer wscontainer = WebSocketServerContainerInitializer.configureContext(context);
 
                 // Add WebSocket endpoint to javax.websocket layer
-                wscontainer.addEndpoint(LogStreamer.class);
+                wscontainer.addEndpoint(LogSocket.class);
+
 
                 //startWS();
 
