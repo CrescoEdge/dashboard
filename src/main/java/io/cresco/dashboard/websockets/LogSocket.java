@@ -12,15 +12,17 @@ import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 @ClientEndpoint
 @ServerEndpoint(value="/dashboard/logsocket")
 public class LogSocket
 {
     private static final Set<Session> sessions = Collections.synchronizedSet(new HashSet<>());
+    private static final Map<String,SessionInfo> activeHost = Collections.synchronizedMap(new HashMap<>());
+    private static final Map<String,String> sessionMap = Collections.synchronizedMap(new HashMap<>());
+
+
     private PluginBuilder plugin;
     private CLogger logger;
 
@@ -39,8 +41,10 @@ public class LogSocket
     public void onWebSocketConnect(Session sess)
     {
         sessions.add(sess);
+        String logSessionId = UUID.randomUUID().toString();
+        sessionMap.put(sess.getId(),logSessionId);
         //System.out.println("Socket Connected: " + sess);
-        logger.info("Socket Connected: " + sess);
+        logger.info("Socket Connected: " + sess.getId());
 
         MessageListener ml = new MessageListener() {
 
@@ -62,7 +66,6 @@ public class LogSocket
                     textMessage.setText(message);
                          */
 
-
                         String messageString = textMessage.getStringProperty("region_id") + "_" + textMessage.getStringProperty("agent_id") + " [ " + textMessage.getStringProperty("logid") + "] " + textMessage.getStringProperty("loglevel") + " " + textMessage.getText();
                         sess.getAsyncRemote().sendObject(messageString);
                     }
@@ -74,7 +77,8 @@ public class LogSocket
             }
         };
 
-        String DPQuery = "region_id IS NOT NULL AND agent_id IS NOT NULL AND event = 'logger'";
+        String DPQuery = "region_id IS NOT NULL AND agent_id IS NOT NULL AND event = 'logger' AND session_id = '" + logSessionId + "'";
+        //String DPQuery = "region_id IS NOT NULL AND agent_id IS NOT NULL AND event = 'logger'";
         Plugin.pluginBuilder.getAgentService().getDataPlaneService().addMessageListener(TopicType.AGENT,ml,DPQuery);
 
     }
@@ -91,14 +95,15 @@ public class LogSocket
             String baseclass = sst[2];
             String loglevel = sst[3];
 
-            if(!isAgentLogDP(region_id, agent_id)) {
-                setAgentLogDP(region_id,agent_id,true);
+            if(!isAgentLogDP(sess.getId(), region_id, agent_id)) {
+                setAgentLogDP(sess.getId(), region_id,agent_id,true);
             }
 
             MsgEvent req = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG, region_id, agent_id);
             req.setParam("action","setloglevel");
             req.setParam("baseclassname", baseclass);
             req.setParam("loglevel", loglevel);
+            req.setParam("session_id", sessionMap.get(sess.getId()));
 
             MsgEvent resp = plugin.sendRPC(req);
             String respMessage = "Error setting loglevel";
@@ -126,6 +131,15 @@ public class LogSocket
     {
         logger.info("Socket Closed: " + reason);
         //System.out.println("Socket Closed: " + reason);
+
+        if(activeHost.containsKey(sess.getId())) {
+            SessionInfo sessionInfo = activeHost.get(sess.getId());
+            if(isAgentLogDP(sessionInfo.logSessionId, sessionInfo.regionId, sessionInfo.agentId)) {
+                setAgentLogDP(sessionInfo.logSessionId, sessionInfo.regionId, sessionInfo.agentId,false);
+                logger.error("removing sessionId: " + sessionInfo.logSessionId + " from regionId: " + sessionInfo.regionId + " agentId: " + sessionInfo.agentId);
+            }
+        }
+
         sessions.remove(sess);
     }
 
@@ -135,11 +149,12 @@ public class LogSocket
         cause.printStackTrace(System.err);
     }
 
-    private boolean isAgentLogDP(String region_id, String agent_id) {
+    private boolean isAgentLogDP(String sessionId, String region_id, String agent_id) {
         boolean isEnable = false;
         try {
             MsgEvent req = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG, region_id, agent_id);
             req.setParam("action","getislogdp");
+            req.setParam("session_id", sessionMap.get(sessionId));
             MsgEvent resp = plugin.sendRPC(req);
             if(resp != null) {
                 if(resp.paramsContains("islogdp")) {
@@ -152,26 +167,33 @@ public class LogSocket
         return isEnable;
     }
 
-    private boolean setAgentLogDP(String region_id, String agent_id, boolean isEnabled) {
-        boolean isEnable = false;
+    private boolean setAgentLogDP(String sessionId, String region_id, String agent_id, boolean isEnabled) {
+        boolean isSet = false;
         try {
             MsgEvent req = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG, region_id, agent_id);
             req.setParam("action","setlogdp");
-            req.setParam("setlogdp",Boolean.TRUE.toString());
+            req.setParam("setlogdp",String.valueOf(isEnabled));
+            req.setParam("session_id", sessionMap.get(sessionId));
 
             MsgEvent resp = plugin.sendRPC(req);
             if(resp != null) {
                 if(resp.paramsContains("status_code")) {
                     int statusCode = Integer.parseInt(resp.getParam("status_code"));
                     if(statusCode == 7) {
-                        isEnable = true;
+                        if(isEnabled) {
+                            String logSessionId = sessionMap.get(sessionId);
+                            activeHost.put(sessionId,new SessionInfo(logSessionId,sessionId,region_id,agent_id));
+                        } else {
+                            activeHost.remove(sessionId);
+                        }
+                        isSet = true;
                     }
                 }
             }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        return isEnable;
+        return isSet;
     }
 
 
