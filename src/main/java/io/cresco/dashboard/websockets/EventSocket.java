@@ -25,6 +25,7 @@ public class EventSocket
 {
     private static final Set<Session> sessions = Collections.synchronizedSet(new HashSet<>());
 
+
     @OnOpen
     public void onWebSocketConnect(Session sess)
     {
