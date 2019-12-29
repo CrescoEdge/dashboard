@@ -39,7 +39,6 @@ import java.util.Map;
         service = { PluginService.class },
         scope=ServiceScope.PROTOTYPE,
         configurationPolicy = ConfigurationPolicy.REQUIRE,
-        servicefactory = true,
         property="dashboard=core",
         reference= { @Reference(name="io.cresco.library.agent.AgentService", service=AgentService.class)}
 )
