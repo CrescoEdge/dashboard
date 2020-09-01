@@ -378,7 +378,6 @@ public class PluginsController {
             InputStream uploadedInputStream) {
 
 
-
         File pluginFileObject = null;
         try {
 
@@ -423,7 +422,6 @@ public class PluginsController {
     private boolean saveToRepo(File tmpJarFile) {
         boolean isSaved = false;
         try {
-
             String pluginName = plugin.getPluginName(tmpJarFile.getAbsolutePath());
             String pluginMD5 = plugin.getMD5(tmpJarFile.getAbsolutePath());
             String pluginJarFile = tmpJarFile.getName();
@@ -463,7 +461,11 @@ public class PluginsController {
                                     pluginID = repoMap.get("pluginid");
                                 }
                             }
+                        } else {
+                            logger.error("saveToRepo missing repomap key plugin");
                         }
+                    } else {
+                        logger.error("saveToRepo missing repo map");
                     }
 
                     if ((region != null) && (agent != null) && (pluginID != null)) {
@@ -482,13 +484,31 @@ public class PluginsController {
                         if (verify != null) {
                             if (verify.getParams().containsKey("md5-confirm")) {
                                 isSaved = true;
+                            } else {
+                                logger.error("saveToRepo unable to verify save");
                             }
+                        } else {
+                            logger.error("saveToRepo verify message was null");
                         }
 
+                    } else {
+                        logger.error("saveToRepo mission region or agent or plugid info");
                     }
 
+                } else {
+                    logger.error("saveToRepo missing repo list payload");
                 }
+            } else {
+                logger.error("saveToRepo missing repo response");
             }
+
+            } else {
+                logger.error("saveToRepo missing plugin info");
+                logger.error("saveToRep pluginName: " + pluginName);
+                logger.error("saveToRepo pluginMD5: " + pluginMD5);
+                logger.error("saveToRepo pluginJarFile: " + pluginJarFile);
+                logger.error("saveToRepo pluginVersion: " + pluginVersion);
+
             }
 
         } catch (Exception e) {
