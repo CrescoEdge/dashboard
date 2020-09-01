@@ -39,7 +39,6 @@ public class PluginsController {
 
     public PluginsController()  {
 
-
         if(plugin == null) {
             if(Plugin.pluginBuilder != null) {
                 plugin = Plugin.pluginBuilder;
