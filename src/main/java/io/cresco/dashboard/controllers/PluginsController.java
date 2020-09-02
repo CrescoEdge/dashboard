@@ -181,7 +181,11 @@ public class PluginsController {
             request.setParam("is_global", Boolean.TRUE.toString());
             request.setParam("globalcmd", "true");
             */
-            MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.EXEC);
+
+            //sending to controller
+            //MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.EXEC);
+            //sending directly to plugin
+            MsgEvent request = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.EXEC, region, agent, pluginID);
             request.setParam("action", "pluginkpi");
             request.setParam("action_region", region);
             request.setParam("action_agent", agent);
