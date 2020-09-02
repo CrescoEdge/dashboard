@@ -482,9 +482,13 @@ public class PluginsController {
                         MsgEvent verify = plugin.sendRPC(uploadMsg);
                         if (verify != null) {
                             if (verify.getParams().containsKey("md5-confirm")) {
-                                isSaved = true;
+                                if(verify.getParams().get("md5-confirm").equals(pluginMD5)) {
+                                    isSaved = true;
+                                } else {
+                                    logger.error("saveToRepo md5-confirm does not match plugin md5");
+                                }
                             } else {
-                                logger.error("saveToRepo unable to verify save");
+                                logger.error("saveToRepo responce does not contain md5-confirm");
                             }
                         } else {
                             logger.error("saveToRepo verify message was null");
