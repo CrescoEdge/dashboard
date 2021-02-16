@@ -107,11 +107,24 @@ public class APISocket
                 case "global_plugin_msgevent":
                     request = GlobalPluginMsgEvent(messageInfo);
                     break;
+                case "kpi_msgevent":
+                    request = KPIMsgEvent(messageInfo);
+                    break;
+                case "regional_controller_msgevent":
+                    request = RegionalControllerMsgEvent(messageInfo);
+                    break;
+                case "regional_agent_msgevent":
+                    request = RegionalAgentMsgEvent(messageInfo);
+                    break;
+                case "regional_plugin_msgevent":
+                    request = RegionalPluginMsgEvent(messageInfo);
+                    break;
+                case "agent_msgevent":
+                    request = AgentMsgEvent(messageInfo);
+                    break;
                 case "plugin_msgevent":
                     request = PluginMsgEvent(messageInfo);
                     break;
-
-
 
                 default:
                     logger.error("Unknown message type");
@@ -178,7 +191,7 @@ public class APISocket
     private MsgEvent KPIMsgEvent(Map<String, String> messageInfo) {
         MsgEvent request = null;
         try {
-
+            request = plugin.getKPIMsgEvent();
         } catch (Exception ex) {
             logger.error(ex.getMessage());
         }
@@ -188,7 +201,8 @@ public class APISocket
     private MsgEvent RegionalControllerMsgEvent(Map<String, String> messageInfo) {
         MsgEvent request = null;
         try {
-
+            MsgEvent.Type messageEventType = MsgEvent.Type.valueOf(messageInfo.get("message_event_type"));
+            request = plugin.getRegionalControllerMsgEvent(messageEventType);
         } catch (Exception ex) {
             logger.error(ex.getMessage());
         }
@@ -198,7 +212,9 @@ public class APISocket
     private MsgEvent RegionalAgentMsgEvent(Map<String, String> messageInfo) {
         MsgEvent request = null;
         try {
-
+            MsgEvent.Type messageEventType = MsgEvent.Type.valueOf(messageInfo.get("message_event_type"));
+            String dstAgent = messageInfo.get("dst_agent");
+            request = plugin.getRegionalAgentMsgEvent(messageEventType,dstAgent);
         } catch (Exception ex) {
             logger.error(ex.getMessage());
         }
@@ -208,7 +224,10 @@ public class APISocket
     private MsgEvent RegionalPluginMsgEvent(Map<String, String> messageInfo) {
         MsgEvent request = null;
         try {
-
+            MsgEvent.Type messageEventType = MsgEvent.Type.valueOf(messageInfo.get("message_event_type"));
+            String dstAgent = messageInfo.get("dst_agent");
+            String dstPlugin = messageInfo.get("dst_plugin");
+            request = plugin.getRegionalPluginMsgEvent(messageEventType, dstAgent, dstPlugin);
         } catch (Exception ex) {
             logger.error(ex.getMessage());
         }
@@ -218,7 +237,8 @@ public class APISocket
     private MsgEvent AgentMsgEvent(Map<String, String> messageInfo) {
         MsgEvent request = null;
         try {
-
+            MsgEvent.Type messageEventType = MsgEvent.Type.valueOf(messageInfo.get("message_event_type"));
+            request = plugin.getAgentMsgEvent(messageEventType);
         } catch (Exception ex) {
             logger.error(ex.getMessage());
         }
