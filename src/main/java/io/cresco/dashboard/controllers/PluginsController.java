@@ -380,10 +380,8 @@ public class PluginsController {
             //@FormDataParam("file") InputStream uploadedInputStream , @FormParam("pluginname") String pluginName, @FormParam("jarfile") String jarFile) {
             InputStream uploadedInputStream) {
 
-
         File pluginFileObject = null;
         try {
-
 
             String tmpFile = UUID.randomUUID().toString();
             if(tmpDir != null) {
@@ -398,12 +396,8 @@ public class PluginsController {
             saveToFile(uploadedInputStream,tmpFile);
 
             //if(saveToRepo(uploadedInputStream, tmpFile)) {
-            if(saveToRepo(pluginFileObject)) {
-
-            Map<String,String> response = new HashMap<>();
-                //response.put("pluginname",pluginName);
-                //response.put("jarfile",jarFile);
-                //pluginFileObject.delete();
+            Map<String,String> response = saveToRepo(pluginFileObject);
+            if(response == null) {
                 return Response.ok(gson.toJson(response), MediaType.APPLICATION_JSON_TYPE).build();
             } else {
                 return Response.ok("{\"error\":\"Failed to Save File\"}",
@@ -422,13 +416,22 @@ public class PluginsController {
 
     }
 
-    private boolean saveToRepo(File tmpJarFile) {
-        boolean isSaved = false;
+    private Map<String,String> saveToRepo(File tmpJarFile) {
+        Map<String,String> jarInfo = null;
+        Boolean isSaved = false;
         try {
+            jarInfo = new HashMap<>();
             String pluginName = plugin.getPluginName(tmpJarFile.getAbsolutePath());
             String pluginMD5 = plugin.getMD5(tmpJarFile.getAbsolutePath());
-            String pluginJarFile = tmpJarFile.getName();
+            //String pluginJarFile = tmpJarFile.getName();
+            String pluginJarFile = pluginMD5;
             String pluginVersion = plugin.getPluginVersion(tmpJarFile.getAbsolutePath());
+
+            //to send back
+            jarInfo.put("pluginname",pluginName);
+            jarInfo.put("jarfile",pluginJarFile);
+            jarInfo.put("version", pluginVersion);
+            jarInfo.put("md5",pluginMD5);
 
             if((pluginName != null) && (pluginMD5 != null) && (pluginJarFile != null) && (pluginVersion != null)) {
 
@@ -522,7 +525,11 @@ public class PluginsController {
 
             e.printStackTrace();
         }
-        return isSaved;
+        if(isSaved) {
+            return jarInfo;
+        } else {
+            return null;
+        }
     }
 
     // save uploaded file to new location
