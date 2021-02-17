@@ -397,7 +397,7 @@ public class PluginsController {
 
             //if(saveToRepo(uploadedInputStream, tmpFile)) {
             Map<String,String> response = saveToRepo(pluginFileObject);
-            if(response == null) {
+            if(response != null) {
                 return Response.ok(gson.toJson(response), MediaType.APPLICATION_JSON_TYPE).build();
             } else {
                 return Response.ok("{\"error\":\"Failed to Save File\"}",
