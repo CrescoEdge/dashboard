@@ -588,10 +588,14 @@ public class PluginsController {
             if (response == null)
                 return Response.ok("{\"error\":\"Cresco rpc response was null\"}",
                         MediaType.APPLICATION_JSON_TYPE).build();
-            String plugins = "[]";
-            if (response.getParam("listpluginsrepo") != null)
-                plugins = response.getCompressedParam("listpluginsrepo");
-            return Response.ok(plugins, MediaType.APPLICATION_JSON_TYPE).build();
+            if (response.getParam("listpluginsrepo") != null) {
+                String plugins = response.getCompressedParam("listpluginsrepo");
+                return Response.ok(plugins, MediaType.APPLICATION_JSON_TYPE).build();
+            } else {
+                return Response.ok("{\"error\":\"No repo was found!\"}",
+                        MediaType.APPLICATION_JSON_TYPE).build();
+            }
+
         } catch (Exception e) {
             if (plugin != null)
                 logger.error("listByPluginType ) : {}", e.getMessage());

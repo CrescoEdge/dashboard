@@ -183,8 +183,7 @@ public class ApplicationsController {
             request.setParam("action", "gpipelinesubmit");
             request.setParam("action_tenantid", tenant);
             request.setCompressedParam("action_gpipeline", pipeline);
-            logger.error(pipeline);
-            logger.error(request.getParam("action_gpipeline"));
+
             MsgEvent response = plugin.sendRPC(request);
             if (response == null)
                 return Response.ok("{\"error\":\"Cresco rpc response was null\"}",
