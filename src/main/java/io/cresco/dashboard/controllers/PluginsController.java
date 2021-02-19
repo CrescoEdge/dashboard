@@ -592,7 +592,7 @@ public class PluginsController {
                 String plugins = response.getCompressedParam("listpluginsrepo");
                 return Response.ok(plugins, MediaType.APPLICATION_JSON_TYPE).build();
             } else {
-                return Response.ok("{\"error\":\"No repo was found!\"}",
+                return Response.ok("{\"error\":\"No repo list found!\"}",
                         MediaType.APPLICATION_JSON_TYPE).build();
             }
 
