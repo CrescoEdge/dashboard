@@ -154,7 +154,8 @@ public class Plugin implements PluginService {
                         .register(PluginsController.class)
                         .register(RegionsController.class)
                         .register(GlobalController.class)
-                        .register(ApplicationsController.class);
+                        .register(ApplicationsController.class)
+                        .register(APIController.class);
                         //not sure what this is
                         //.register(Asyncpoll.class);
 
