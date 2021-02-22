@@ -26,7 +26,7 @@ public class APIController {
     }
 
     @GET
-    @Path("/api/version")
+    @Path("/version")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getlog() {
         try {
