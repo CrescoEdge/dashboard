@@ -230,9 +230,11 @@ public class Plugin implements PluginService {
             if(!jettyServer.isStopped()) {
                 try {
 
+                    jettyServer.stop();
+                    while(!jettyServer.isStopped()) {
+                        logger.error("Waiting on Dashboard to stop.");
+                    }
 
-                    //jettyServer.destroy();
-                    //jettyServer.stop();
                 } catch (Exception ex) {
                     logger.error("embedded web server shutdown error : " + ex.getMessage());
                     ex.printStackTrace();
