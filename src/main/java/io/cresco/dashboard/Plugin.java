@@ -197,6 +197,7 @@ public class Plugin implements PluginService {
 
                 ServerContainer wscontainer = WebSocketServerContainerInitializer.configureContext(context);
 
+                //javax.websocket.Session.setMaxTextMessageBufferSize(int)
                 // Add WebSocket endpoint to javax.websocket layer
                 //wscontainer.addEndpoint(LogSocket.class);
                 wscontainer.addEndpoint(APISocket.class);
