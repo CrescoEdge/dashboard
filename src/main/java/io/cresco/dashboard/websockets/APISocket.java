@@ -61,29 +61,21 @@ public class APISocket
 
         MsgEvent request = GetResponceMsgEvent(incoming_message);
 
-        MsgEvent response = plugin.sendRPC(request);
+        boolean isRPC  = Boolean.valueOf(incoming_message.get("message_info").get("is_rpc"));
 
+        MsgEvent response = null;
+        if(isRPC) {
+            response = plugin.sendRPC(request);
+            if (response == null)
+                r = "{\"error\":\"Cresco rpc response was null\"}";
+            else {
+                r = gson.toJson(response.getParams());
+            }
 
-
-        if (response == null)
-            r = "{\"error\":\"Cresco rpc response was null\"}";
-        else {
-            r = gson.toJson(response.getParams());
+            sess.getAsyncRemote().sendObject(r);
+        } else {
+            plugin.msgOut(request);
         }
-
-        sess.getAsyncRemote().sendObject(r);
-
-    /*
-    global_plugin_msgevent
-    public MsgEvent getGlobalPluginMsgEvent(MsgEvent.Type type, String dstRegion, String dstAgent, String dstPlugin) {
-    public MsgEvent getKPIMsgEvent() {
-    public MsgEvent getRegionalControllerMsgEvent(MsgEvent.Type type) {
-    public MsgEvent getRegionalAgentMsgEvent(MsgEvent.Type type, String dstAgent) {
-    public MsgEvent getRegionalPluginMsgEvent(MsgEvent.Type type, String dstAgent, String dstPlugin) {
-    public MsgEvent getAgentMsgEvent(MsgEvent.Type type) {
-    public MsgEvent getPluginMsgEvent(MsgEvent.Type type, String dstPlugin) {
-    */
-
 
     }
 
