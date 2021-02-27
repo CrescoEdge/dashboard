@@ -41,6 +41,8 @@ public class APISocket
     @OnOpen
     public void onWebSocketConnect(Session sess)
     {
+        sess.setMaxBinaryMessageBufferSize(50000000);
+        sess.setMaxTextMessageBufferSize(50000000);
         sessions.add(sess);
         String logSessionId = UUID.randomUUID().toString();
         sessionMap.put(sess.getId(),logSessionId);
@@ -52,23 +54,30 @@ public class APISocket
     @OnMessage
     public void onWebSocketText(Session sess, String message)
     {
-        String r;
+        String r = "{\"error\":\"unknown error\"}";
+
+        logger.info("Received TEXT message: " + message);
+
 
         Map<String, Map<String, String>> incoming_message = gson.fromJson(message, type);
 
         MsgEvent request = GetResponceMsgEvent(incoming_message);
 
-        MsgEvent response = plugin.sendRPC(request);
+        boolean isRPC  = Boolean.valueOf(incoming_message.get("message_info").get("is_rpc"));
 
+        MsgEvent response = null;
+        if(isRPC) {
+            response = plugin.sendRPC(request);
+            if (response == null)
+                r = "{\"error\":\"Cresco rpc response was null\"}";
+            else {
+                r = gson.toJson(response.getParams());
+            }
 
-
-        if (response == null)
-            r = "{\"error\":\"Cresco rpc response was null\"}";
-        else {
-            r = gson.toJson(response.getParams());
+            sess.getAsyncRemote().sendObject(r);
+        } else {
+            plugin.msgOut(request);
         }
-
-        sess.getAsyncRemote().sendObject(r);
 
     }
 

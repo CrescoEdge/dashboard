@@ -23,12 +23,17 @@ import org.eclipse.jetty.servlets.DoSFilter;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.hibernate.cfg.Environment;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.annotations.*;
 
 import javax.servlet.DispatcherType;
 import java.io.File;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.util.Dictionary;
 import java.util.EnumSet;
 import java.util.Hashtable;
@@ -192,6 +197,7 @@ public class Plugin implements PluginService {
 
                 ServerContainer wscontainer = WebSocketServerContainerInitializer.configureContext(context);
 
+                //javax.websocket.Session.setMaxTextMessageBufferSize(int)
                 // Add WebSocket endpoint to javax.websocket layer
                 //wscontainer.addEndpoint(LogSocket.class);
                 wscontainer.addEndpoint(APISocket.class);
@@ -222,6 +228,29 @@ public class Plugin implements PluginService {
         }
     }
 
+    private void shutdownDB() {
+
+        try{
+
+            Class.forName("org.h2.Driver");
+            String dataDirectory = Plugin.pluginBuilder.getPluginDataDirectory();
+            String connectionString = "jdbc:h2:" + dataDirectory + "/dashboard-db/h2db;DB_CLOSE_DELAY=-1";
+
+            Connection conn = DriverManager.getConnection(connectionString);
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate("SHUTDOWN");
+
+            Driver d= new org.h2.Driver();
+            DriverManager.deregisterDriver(d);
+
+
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+
+    }
 
     @Override
     public boolean isStopped() {
@@ -230,9 +259,12 @@ public class Plugin implements PluginService {
             if(!jettyServer.isStopped()) {
                 try {
 
+                    jettyServer.stop();
+                    while(!jettyServer.isStopped()) {
+                        logger.error("Waiting on Dashboard to stop.");
+                    }
+                    shutdownDB();
 
-                    //jettyServer.destroy();
-                    //jettyServer.stop();
                 } catch (Exception ex) {
                     logger.error("embedded web server shutdown error : " + ex.getMessage());
                     ex.printStackTrace();
