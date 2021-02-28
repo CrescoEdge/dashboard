@@ -6,7 +6,7 @@ import io.cresco.dashboard.filters.AuthenticationFilter;
 
 
 import io.cresco.dashboard.filters.NotFoundExceptionHandler;
-import io.cresco.dashboard.websockets.APISocket;
+import io.cresco.dashboard.websockets.LogSocket;
 import io.cresco.library.agent.AgentService;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.Executor;
@@ -23,7 +23,6 @@ import org.eclipse.jetty.servlets.DoSFilter;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.hibernate.cfg.Environment;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.annotations.*;
@@ -159,8 +158,8 @@ public class Plugin implements PluginService {
                         .register(PluginsController.class)
                         .register(RegionsController.class)
                         .register(GlobalController.class)
-                        .register(ApplicationsController.class)
-                        .register(APIController.class);
+                        .register(ApplicationsController.class);
+                        //.register(APIController.class);
                         //not sure what this is
                         //.register(Asyncpoll.class);
 
@@ -199,8 +198,8 @@ public class Plugin implements PluginService {
 
                 //javax.websocket.Session.setMaxTextMessageBufferSize(int)
                 // Add WebSocket endpoint to javax.websocket layer
-                //wscontainer.addEndpoint(LogSocket.class);
-                wscontainer.addEndpoint(APISocket.class);
+                wscontainer.addEndpoint(LogSocket.class);
+                //wscontainer.addEndpoint(APISocket.class);
 
 
                 //startWS();
