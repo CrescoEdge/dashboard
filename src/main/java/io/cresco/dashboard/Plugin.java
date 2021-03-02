@@ -254,13 +254,27 @@ public class Plugin implements PluginService {
     @Override
     public boolean isStopped() {
 
+        if(jerseyServlet != null) {
+            if(!jerseyServlet.isStopped()) {
+                try {
+                    jerseyServlet.stop();
+                    while(!jerseyServlet.isStopped()) {
+                        logger.error("Waiting on Dashboard (servlet) to stop.");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
         if(jettyServer != null) {
+
             if(!jettyServer.isStopped()) {
                 try {
 
                     jettyServer.stop();
                     while(!jettyServer.isStopped()) {
-                        logger.error("Waiting on Dashboard to stop.");
+                        logger.error("Waiting on Dashboard (server) to stop.");
                     }
                     shutdownDB();
 
