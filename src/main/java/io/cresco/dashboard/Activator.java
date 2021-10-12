@@ -12,7 +12,6 @@ import java.util.Hashtable;
 
 public class Activator implements BundleActivator {
 
-
     public void start(BundleContext context) throws Exception {
 
         System.setProperty("org.jboss.logging.provider", "slf4j");
