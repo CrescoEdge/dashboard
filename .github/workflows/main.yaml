@@ -1,4 +1,4 @@
-name: Java CI Cresco SysInfo
+name: Java CI Cresco Dashboard
 
 on: [push]
 
