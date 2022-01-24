@@ -223,10 +223,12 @@ public class RootController {
 
         InputStream in = null;
         try{
+
             in = getClass().getResourceAsStream(subResources);
 
             if(in == null)
             {
+
                 System.out.println("File NOT FOUND " + subResources);
                 return Response.status(Response.Status.NOT_FOUND).build();
             }
@@ -286,6 +288,7 @@ public class RootController {
             return Response.ok(in, mediaType(subResources)).build();
 
         }
+
     }
 
     @PermitAll
