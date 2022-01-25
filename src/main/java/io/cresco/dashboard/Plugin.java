@@ -7,6 +7,7 @@ import io.cresco.dashboard.filters.AuthenticationFilter;
 
 import io.cresco.dashboard.filters.NotFoundExceptionHandler;
 import io.cresco.dashboard.websockets.LogSocket;
+import io.cresco.dashboard.websockets.ShellDataPlane;
 import io.cresco.library.agent.AgentService;
 import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.Executor;
@@ -198,7 +199,7 @@ public class Plugin implements PluginService {
 
                 //javax.websocket.Session.setMaxTextMessageBufferSize(int)
                 // Add WebSocket endpoint to javax.websocket layer
-                wscontainer.addEndpoint(LogSocket.class);
+                wscontainer.addEndpoint(ShellDataPlane.class);
                 //wscontainer.addEndpoint(APISocket.class);
 
 
