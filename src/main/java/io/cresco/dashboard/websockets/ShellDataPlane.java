@@ -1,9 +1,11 @@
 package io.cresco.dashboard.websockets;
 
+import com.google.common.io.ByteStreams;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import io.cresco.dashboard.Plugin;
 import io.cresco.library.data.TopicType;
+import io.cresco.library.messaging.MsgEvent;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.utilities.CLogger;
 
@@ -12,8 +14,14 @@ import javax.jms.TextMessage;
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
 import java.lang.reflect.Type;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.jar.Attributes;
+import java.util.jar.JarInputStream;
+import java.util.jar.Manifest;
 
 @ClientEndpoint
 @ServerEndpoint(value="/dashboard/shellstream")
@@ -46,6 +54,11 @@ public class ShellDataPlane
     {
         sess.setMaxBinaryMessageBufferSize(50000000);
         sess.setMaxTextMessageBufferSize(50000000);
+
+        //do some stuff here
+
+        //in = getClass().getResourceAsStream(subResources);
+
         synchronized (lockSessions) {
             sessions.add(sess);
         }
@@ -67,6 +80,78 @@ public class ShellDataPlane
         }
 
         return isActive;
+    }
+
+    private ShellInfo initExecutor(ShellInfo streamInfo) {
+
+        try {
+            //push executor
+            //in = getClass().getResourceAsStream(subResources);
+            String jarPath = "executor-1.1-SNAPSHOT.jar";
+            URL url = getClass().getClassLoader().getResource(jarPath);
+
+            JarInputStream jarInputStream = new JarInputStream(getClass().getClassLoader().getResourceAsStream(jarPath));
+            Manifest manifest = jarInputStream.getManifest();
+
+            String MD5 = plugin.getMD5(getClass().getClassLoader().getResourceAsStream(url.getPath()));
+
+            Attributes mainAttributess = manifest.getMainAttributes();
+
+            Map<String, String> configParams = new HashMap<>();
+            configParams.put("pluginname", mainAttributess.getValue("Bundle-SymbolicName"));
+            configParams.put("version", mainAttributess.getValue("Bundle-Version"));
+            configParams.put("md5", MD5);
+
+            //byte[] jardata = Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource(jarPath).toURI()));
+            byte[] jardata = ByteStreams.toByteArray(this.getClass().getClassLoader().getResourceAsStream(jarPath));
+
+            MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.CONFIG);
+            request.setParam("action", "savetorepo");
+            request.setCompressedParam("configparams", gson.toJson(configParams));
+            request.setDataParam("jardata", jardata);
+            //request.setCompressedDataParam("jardata", targetArray);
+
+            MsgEvent response = plugin.sendRPC(request);
+            if(response.paramsContains("is_saved")) {
+                if(Boolean.parseBoolean(response.getParam("is_saved"))) {
+
+                    MsgEvent add_request = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId());
+                    add_request.setParam("action", "pluginadd");
+                    add_request.setParam("configparams",response.getParam("configparams"));
+
+                    MsgEvent add_response = plugin.sendRPC(add_request);
+
+                    if(add_response.paramsContains("status_code")) {
+
+                        if(add_request.getParam("status_code").equals("10")) {
+                            streamInfo.setPluginId(add_request.getParam("pluginid"));
+
+                            MsgEvent config_request = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId(), streamInfo.getPluginId());
+                            config_request.setParam("action","config_process");
+                            config_request.setParam("stream_name", streamInfo.getIdentId());
+                            config_request.setParam("command","-interactive-");
+                            MsgEvent config_response = plugin.sendRPC(config_request);
+                            logger.error(config_response.getParams().toString());
+
+                            MsgEvent start_request = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId(), streamInfo.getPluginId());
+                            start_request.setParam("action","start_process");
+                            start_request.setParam("stream_name", streamInfo.getIdentId());
+
+                            MsgEvent start_response = plugin.sendRPC(start_request);
+                            logger.error(start_response.getParams().toString());
+
+                        }
+                    }
+                    logger.error(add_response.getParams().toString());
+                }
+            }
+
+            logger.error(response.getParams().toString());
+
+        } catch (Exception ex) {
+            logger.error(ex.getMessage());
+        }
+        return streamInfo;
     }
 
     @OnMessage
@@ -94,7 +179,7 @@ public class ShellDataPlane
                     updateMessage.setText(message);
                     updateMessage.setStringProperty(identKey, identId);
                     updateMessage.setStringProperty(ioTypeKey, inputId);
-
+                    logger.debug("SENDING MESSAGE TO EXEC: " + updateMessage.getText());
                     plugin.getAgentService().getDataPlaneService().sendMessage(TopicType.AGENT, updateMessage);
                 } else {
                     logger.error("Active onWebSocketText(): must provide identKey and identID");
@@ -111,10 +196,15 @@ public class ShellDataPlane
             try {
                 
                 Map<String,String> mapMessage = gson.fromJson(message,hashtype);
-                ShellInfo streamInfo = new ShellInfo(sess.getId(),mapMessage.get("ident_key"), mapMessage.get("ident_id"));
+                mapMessage.put("region_id","global-region");
+                mapMessage.put("agent_id","global-controller");
+                ShellInfo streamInfo = new ShellInfo(sess.getId(),mapMessage.get("ident_key"), mapMessage.get("ident_id"), mapMessage.get("region_id"), mapMessage.get("agent_id"));
                 streamInfo.setIoTypeKey(mapMessage.get("io_type_key"));
                 streamInfo.setOutputId(mapMessage.get("output_id"));
                 streamInfo.setInputId(mapMessage.get("input_id"));
+
+                streamInfo = initExecutor(streamInfo);
+
 
                 if (createListener(sess, streamInfo)) {
                     responce.put("status_code", "10");
@@ -149,10 +239,12 @@ public class ShellDataPlane
 
 
                         if (msg instanceof TextMessage) {
-
+                            logger.debug("INCOMING FROM EXEC: " + ((TextMessage) msg).getText());
                             sess.getAsyncRemote().sendObject(((TextMessage) msg).getText());
-
+                        } else {
+                            logger.error("Expected Text message");
                         }
+
                     } catch(Exception ex) {
 
                         ex.printStackTrace();

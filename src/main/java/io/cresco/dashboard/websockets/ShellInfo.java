@@ -10,6 +10,9 @@ public class ShellInfo {
     private String ioTypeKey;
     private String outputId;
     private String inputId;
+    private String regionId;
+    private String agentId;
+    private String pluginId;
 
 
     public void setIdentKey(String identKey) {
@@ -40,15 +43,19 @@ public class ShellInfo {
         this.inputId = inputId;
     }
 
-    public ShellInfo(String sessionId, String identKy, String identId) {
+    public ShellInfo(String sessionId, String identKy, String identId, String regionId, String agentId) {
         this.sessionId = sessionId;
         this.identKey = identKy;
         this.identId = identId;
+        this.regionId = regionId;
+        this.agentId = agentId;
     }
 
-    public ShellInfo(String sessionId, String stream_query) {
+    public ShellInfo(String sessionId, String stream_query, String regionId, String agentId) {
         this.sessionId = sessionId;
         this.stream_query = stream_query;
+        this.regionId = regionId;
+        this.agentId = agentId;
     }
 
     public String getSessionId() {
@@ -87,4 +94,27 @@ public class ShellInfo {
         this.listenerId = listenerId;
     }
 
+    public String getRegionId() {
+        return regionId;
+    }
+
+    public void setRegionId(String regionId) {
+        this.regionId = regionId;
+    }
+
+    public String getAgentId() {
+        return agentId;
+    }
+
+    public void setAgentId(String agentId) {
+        this.agentId = agentId;
+    }
+
+    public String getPluginId() {
+        return pluginId;
+    }
+
+    public void setPluginId(String pluginId) {
+        this.pluginId = pluginId;
+    }
 }
