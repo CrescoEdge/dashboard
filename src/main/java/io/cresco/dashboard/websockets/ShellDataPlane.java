@@ -33,7 +33,8 @@ public class ShellDataPlane
     private static final Gson gson = new Gson();
     private AtomicBoolean lockSessions = new AtomicBoolean();
     private AtomicBoolean lockSessionMap = new AtomicBoolean();
-    //synchronized (lockConfig) {
+
+    private String latestOutput;
 
     private PluginBuilder plugin;
     private CLogger logger;
@@ -179,7 +180,9 @@ public class ShellDataPlane
                     updateMessage.setText(message);
                     updateMessage.setStringProperty(identKey, identId);
                     updateMessage.setStringProperty(ioTypeKey, inputId);
-                    logger.error("SENDING MESSAGE TO EXEC: " + updateMessage.getText());
+                    logger.error("DASHBOARD MESSAGE TO EXEC: " + updateMessage.getText());
+                    latestOutput = updateMessage.getText();
+
                     plugin.getAgentService().getDataPlaneService().sendMessage(TopicType.AGENT, updateMessage);
                 } else {
                     logger.error("Active onWebSocketText(): must provide identKey and identID");
@@ -206,7 +209,8 @@ public class ShellDataPlane
                 streamInfo = initExecutor(streamInfo);
 
 
-                if (createListener(sess, streamInfo)) {
+                if (createStdoutListener(sess, streamInfo)) {
+                    createStderrListener(sess, streamInfo);
                     responce.put("status_code", "10");
                     responce.put("status_desc", "Listener Active");
 
@@ -229,7 +233,7 @@ public class ShellDataPlane
 
     }
 
-    private boolean createListener(Session sess, ShellInfo streamInfo) {
+    private boolean createStdoutListener(Session sess, ShellInfo streamInfo) {
         boolean isCreated = false;
         try{
 
@@ -239,7 +243,7 @@ public class ShellDataPlane
 
 
                         if (msg instanceof TextMessage) {
-                            logger.error("INCOMING FROM EXEC: " + ((TextMessage) msg).getText());
+                            logger.error("DASHBOARD STDOUT INCOMING FROM EXEC: " + ((TextMessage) msg).getText());
                             sess.getAsyncRemote().sendObject(((TextMessage) msg).getText());
                         } else {
                             logger.error("Expected Text message");
@@ -272,6 +276,69 @@ public class ShellDataPlane
 
         return isCreated;
     }
+
+    private boolean createStderrListener(Session sess, ShellInfo streamInfo) {
+        boolean isCreated = false;
+        try{
+
+            javax.jms.MessageListener ml = new javax.jms.MessageListener() {
+                public void onMessage(Message msg) {
+                    try {
+
+
+                        if (msg instanceof TextMessage) {
+                            String incomingString = ((TextMessage) msg).getText();
+                            logger.error("DASHBOARD STDERR INCOMING FROM EXEC: " + incomingString);
+                            logger.error("Last command: " + latestOutput);
+                            boolean gobbleLine = false;
+
+                            if(latestOutput != null) {
+                                if(incomingString.endsWith(latestOutput)) {
+                                    logger.error("MATCHES DON't SEND");
+                                    latestOutput = null;
+                                    gobbleLine = true;
+                                }
+                            }
+
+                            if(gobbleLine) {
+
+                            } else {
+                                sess.getAsyncRemote().sendObject(incomingString);
+                            }
+
+
+                        } else {
+                            logger.error("Expected Text message");
+                        }
+
+                    } catch(Exception ex) {
+
+                        ex.printStackTrace();
+                    }
+                }
+            };
+
+            String stream_query = streamInfo.getIdentKey() + "='" + streamInfo.getIdentId() + "' and " + streamInfo.getIoTypeKey() + "='" + "error" + "'";
+
+            String listenerid = plugin.getAgentService().getDataPlaneService().addMessageListener(TopicType.AGENT,ml,stream_query);
+
+            streamInfo.setListenerId(listenerid);
+
+            synchronized (lockSessionMap) {
+                sessionMap.put(sess.getId(), streamInfo);
+            }
+
+            //sess.getAsyncRemote().sendObject("APIDataPlane Connected Session: " + sess.getId());
+
+            isCreated = true;
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return isCreated;
+    }
+
 
     @OnClose
     public void onWebSocketClose(Session sess, CloseReason reason)
