@@ -15,7 +15,7 @@ jobs:
           java-version: '8'
           distribution: 'adopt'
       - name: Download Dependencies
-          run: bash prebuild.sh
+        run: bash prebuild.sh
       - name: Build with Maven
         run: mvn package bundle:bundle
       - name: Deploy to Maven
