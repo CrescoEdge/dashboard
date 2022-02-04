@@ -14285,4 +14285,8 @@ pre {
   height: auto !important;
 }
 
+.console {
+  min-height: 89vh;
+}
+
 /*# sourceMappingURL=style.css.map */

@@ -1,0 +1,64 @@
+{{> header}}
+<div class="console"></div>
+
+<link rel="stylesheet" href="https://unpkg.com/jquery.terminal/css/jquery.terminal.min.css"/>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://unpkg.com/jquery.terminal/js/jquery.terminal.min.js"></script>
+<script>
+    let url = $(location).attr('href'),
+        parts = url.split("/"),
+        region = parts[parts.length-2],
+        agent = parts[parts.length-1];
+    
+    let hasExecutor = false;
+    let greet = '';
+    let test = '';
+
+    $.get({
+        async: false,
+        url: "/dashboard/plugins/list/"+region+"/"+agent,
+        success: function (result) {
+            for (const elem of result.plugins){
+                if (elem.pluginname == "io.cresco.executor") {
+                    hasExecutor = true;
+                }
+            }
+        }
+    });
+
+    if (hasExecutor) {
+        greet = 'Cresco Web-Based Semi-Interactive Terminal\n\nAgent: ' + agent + '\tRegion: ' + region + '\n';
+    }
+    else {
+        greet = 'WARNING: EXECUTOR NOT INSTALLED FOR THIS AGENT!!!\nCommands will NOT work.\n';
+    }
+
+    var socket = new WebSocket("ws://localhost:8181/dashboard/shellstream");
+    var isInitConnect = true;
+    $('.console').terminal(function(command, term) {
+        socket.onmessage = function(msg) {
+            term.resume();
+            term.echo(msg.data);
+        };
+        term.pause();
+        if(isInitConnect) {
+            initial_data = {"ident_key":"stream_name", "ident_id": crypto.randomUUID(), "io_type_key": "type", "output_id": "output", "input_id": "input"};
+            socket.send(JSON.stringify(initial_data));
+            isInitConnect = false;
+        }
+        else {
+            socket.send(command);
+            console.log(command);
+        }
+    },
+    { greetings: greet }
+    );
+
+    /*$('.console').terminal(function(command, term){
+        // TODO send command
+        return 'test'; 
+    }, 
+    { greetings: greet }
+    );*/
+</script>
+{{> footer}}

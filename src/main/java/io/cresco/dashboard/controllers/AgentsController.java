@@ -175,6 +175,43 @@ public class AgentsController {
 
 
     @GET
+    @Path("/console/{region}/{agent}")
+    @Produces(MediaType.TEXT_HTML)
+    public Response console(@CookieParam(AuthenticationFilter.SESSION_COOKIE_NAME) String sessionID,
+                            @PathParam("region") String region,
+                            @PathParam("agent") String agent) {
+        try {
+            LoginSession loginSession = LoginSessionService.getByID(sessionID);
+            PebbleEngine engine = new PebbleEngine.Builder().build();
+            PebbleTemplate compiledTemplate = engine.getTemplate("agents/console.html");
+
+            MustacheFactory mf = new DefaultMustacheFactory();
+            Mustache mustache = mf.compile("console-details.mustache");
+
+            Map<String, Object> context = new HashMap<>();
+            if (loginSession != null)
+                context.put("user", loginSession.getUsername());
+            context.put("section", "agents");
+            context.put("page", "details");
+            context.put("region", region);
+            context.put("agent", agent);
+
+            Writer writer = new StringWriter();
+            //compiledTemplate.evaluate(writer, context);
+            mustache.execute(writer, context);
+
+            return Response.ok(writer.toString()).build();
+        } catch (PebbleException e) {
+            return Response.ok("PebbleException: " + e.getMessage()).build();
+        } /*catch (IOException e) {
+            return Response.ok("IOException: " + e.getMessage()).build();
+        }*/ catch (Exception e) {
+            return Response.ok("Server error: " + e.getMessage()).build();
+        }
+    }
+
+
+    @GET
     @Path("/list")
     @Produces(MediaType.APPLICATION_JSON)
     public Response list() {

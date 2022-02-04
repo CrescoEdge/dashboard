@@ -109,7 +109,7 @@ public class ShellDataPlane
             Map<String, String> responce = new HashMap<>();
             //responce.put("stream_query", message);
             try {
-
+                
                 Map<String,String> mapMessage = gson.fromJson(message,hashtype);
                 ShellInfo streamInfo = new ShellInfo(sess.getId(),mapMessage.get("ident_key"), mapMessage.get("ident_id"));
                 streamInfo.setIoTypeKey(mapMessage.get("io_type_key"));
@@ -132,7 +132,7 @@ public class ShellDataPlane
                 responce.put("status_desc", ex.getMessage());
                 ex.printStackTrace();
             }
-
+            
             sess.getAsyncRemote().sendObject(gson.toJson(responce));
 
         }
