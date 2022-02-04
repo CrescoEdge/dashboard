@@ -179,7 +179,7 @@ public class ShellDataPlane
                     updateMessage.setText(message);
                     updateMessage.setStringProperty(identKey, identId);
                     updateMessage.setStringProperty(ioTypeKey, inputId);
-                    logger.debug("SENDING MESSAGE TO EXEC: " + updateMessage.getText());
+                    logger.error("SENDING MESSAGE TO EXEC: " + updateMessage.getText());
                     plugin.getAgentService().getDataPlaneService().sendMessage(TopicType.AGENT, updateMessage);
                 } else {
                     logger.error("Active onWebSocketText(): must provide identKey and identID");
@@ -239,7 +239,7 @@ public class ShellDataPlane
 
 
                         if (msg instanceof TextMessage) {
-                            logger.debug("INCOMING FROM EXEC: " + ((TextMessage) msg).getText());
+                            logger.error("INCOMING FROM EXEC: " + ((TextMessage) msg).getText());
                             sess.getAsyncRemote().sendObject(((TextMessage) msg).getText());
                         } else {
                             logger.error("Expected Text message");
