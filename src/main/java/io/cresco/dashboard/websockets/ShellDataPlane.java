@@ -199,12 +199,13 @@ public class ShellDataPlane
             try {
                 
                 Map<String,String> mapMessage = gson.fromJson(message,hashtype);
-                mapMessage.put("region_id","global-region");
-                mapMessage.put("agent_id","global-controller");
+                //mapMessage.put("region_id","global-region");
+                //mapMessage.put("agent_id","global-controller");
                 ShellInfo streamInfo = new ShellInfo(sess.getId(),mapMessage.get("ident_key"), mapMessage.get("ident_id"), mapMessage.get("region_id"), mapMessage.get("agent_id"));
                 streamInfo.setIoTypeKey(mapMessage.get("io_type_key"));
                 streamInfo.setOutputId(mapMessage.get("output_id"));
                 streamInfo.setInputId(mapMessage.get("input_id"));
+
 
                 streamInfo = initExecutor(streamInfo);
 
