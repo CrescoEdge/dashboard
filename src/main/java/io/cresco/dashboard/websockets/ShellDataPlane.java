@@ -290,6 +290,8 @@ public class ShellDataPlane
                             String incomingString = ((TextMessage) msg).getText();
                             logger.error("DASHBOARD STDERR INCOMING FROM EXEC: " + incomingString);
                             logger.error("Last command: " + latestOutput);
+                            sess.getAsyncRemote().sendObject(incomingString);
+                            /*
                             boolean gobbleLine = false;
 
                             if(latestOutput != null) {
@@ -305,6 +307,8 @@ public class ShellDataPlane
                             } else {
                                 sess.getAsyncRemote().sendObject(incomingString);
                             }
+
+                             */
 
 
                         } else {
