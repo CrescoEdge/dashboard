@@ -8,13 +8,14 @@
     let url = $(location).attr('href'),
         parts = url.split("/"),
         region = parts[parts.length-2],
-        agent = parts[parts.length-1];
+        agent = parts[parts.length-1],
+        baseURL = parts[parts.length-6];
     
-    let hasExecutor = false;
+    // let hasExecutor = false;
     let greet = '';
     let test = '';
 
-    $.get({
+    /* $.get({
         async: false,
         url: "/dashboard/plugins/list/"+region+"/"+agent,
         success: function (result) {
@@ -24,16 +25,16 @@
                 }
             }
         }
-    });
+    });*/
 
-    if (hasExecutor) {
+    /*if (hasExecutor) {
         greet = 'Cresco Web-Based Semi-Interactive Terminal\n\nAgent: ' + agent + '\tRegion: ' + region + '\n';
     }
     else {
         greet = 'WARNING: EXECUTOR NOT INSTALLED FOR THIS AGENT!!!\nCommands will NOT work.\n';
-    }
+    }*/
 
-    var socket = new WebSocket("ws://localhost:8181/dashboard/shellstream");
+    var socket = new WebSocket("ws://"+baseURL+"/dashboard/shellstream");
     var isInitConnect = true;
     $('.console').terminal(function(command, term) {
         socket.onmessage = function(msg) {
@@ -41,24 +42,21 @@
             term.echo(msg.data);
         };
         term.pause();
-        if(isInitConnect) {
-            initial_data = {"ident_key":"stream_name", "ident_id": crypto.randomUUID(), "io_type_key": "type", "output_id": "output", "input_id": "input"};
-            socket.send(JSON.stringify(initial_data));
-            isInitConnect = false;
-        }
-        else {
-            socket.send(command);
-            console.log(command);
-        }
-    },
-    { greetings: greet }
-    );
+        socket.send(command);
+        console.log(command);
 
-    /*$('.console').terminal(function(command, term){
-        // TODO send command
-        return 'test'; 
-    }, 
-    { greetings: greet }
-    );*/
+    },
+    { 
+        greetings: 'Cresco Web-Based Console\n\nAgent: ' + agent + '\tRegion: ' + region + '\n',
+        onBeforeCommand: function (command) {
+            if(isInitConnect) {
+                initial_data = {"ident_key":"stream_name", "ident_id": crypto.randomUUID(), "io_type_key": "type", "output_id": "output", "input_id": "input", "region_id": region, "agent_id": agent};
+                socket.send(JSON.stringify(initial_data));
+                isInitConnect = false;
+            }
+            return true;
+        }
+    });
+    
 </script>
 {{> footer}}
