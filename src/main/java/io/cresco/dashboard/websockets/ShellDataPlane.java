@@ -13,6 +13,8 @@ import javax.jms.Message;
 import javax.jms.TextMessage;
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Type;
 import java.net.URL;
 import java.nio.file.Files;
@@ -38,6 +40,7 @@ public class ShellDataPlane
 
     private PluginBuilder plugin;
     private CLogger logger;
+    private Type type;
 
     public ShellDataPlane() {
 
@@ -45,6 +48,8 @@ public class ShellDataPlane
             if(Plugin.pluginBuilder != null) {
                 plugin = Plugin.pluginBuilder;
                 logger = plugin.getLogger(ShellDataPlane.class.getName(), CLogger.Level.Info);
+                this.type = new com.google.gson.reflect.TypeToken<Map<String, List<Map<String, String>>>>() {
+                }.getType();
             }
         }
 
@@ -83,11 +88,13 @@ public class ShellDataPlane
         return isActive;
     }
 
-    private ShellInfo initExecutor(ShellInfo streamInfo) {
-
+    private Map<String, String> getExeConfigParams() {
+        Map<String, String> configParams = null;
         try {
-            //push executor
-            //in = getClass().getResourceAsStream(subResources);
+
+            configParams = new HashMap<>();
+
+            //determine embedded executor information
             String jarPath = "executor-1.1-SNAPSHOT.jar";
             URL url = getClass().getClassLoader().getResource(jarPath);
 
@@ -98,13 +105,50 @@ public class ShellDataPlane
 
             Attributes mainAttributess = manifest.getMainAttributes();
 
-            Map<String, String> configParams = new HashMap<>();
             configParams.put("pluginname", mainAttributess.getValue("Bundle-SymbolicName"));
             configParams.put("version", mainAttributess.getValue("Bundle-Version"));
             configParams.put("md5", MD5);
+            configParams.put("jarpath",jarPath);
 
+        } catch (Exception ex) {
+            logger.error("getExeConfigParams(): " + ex.getMessage());
+        }
+        return configParams;
+    }
+
+    private boolean execRepoCheck(Map<String, String> configParams) {
+        boolean isrepo = false;
+        try {
+
+            //check if executor is in global repo
+            MsgEvent repo_list_request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.EXEC);
+            repo_list_request.setParam("action", "listpluginsrepo");
+            MsgEvent repo_list_response = plugin.sendRPC(repo_list_request);
+            String outputString = repo_list_response.getCompressedParam("listpluginsrepo");
+            logger.error(outputString);
+            Map<String, List<Map<String, String>>> myRepoMap = gson.fromJson(repo_list_response.getCompressedParam("listpluginsrepo"), type);
+
+            for(Map<String,String> pluginMap : myRepoMap.get("plugins")) {
+                if((pluginMap.get("pluginname").equals(configParams.get("pluginname"))) && (pluginMap.get("version").equals(configParams.get("version"))) && (pluginMap.get("md5").equals(configParams.get("md5")))) {
+                    isrepo = true;
+                }
+            }
+            //{"plugins":[{"pluginname":"io.cresco.executor","jarfile":"68c792d481a2eb2d1d9a02470af3f308",
+            // "version":"1.1.0.SNAPSHOT-2022-02-12T145414Z","md5":"68c792d481a2eb2d1d9a02470af3f308"}]}
+
+        } catch (Exception ex) {
+            logger.error("execRepoCheck() " + ex.getMessage());
+        }
+        return isrepo;
+    }
+
+    private boolean addExecToRepo(Map<String, String> configParams) {
+        boolean isAdded = false;
+        try {
+
+            //add if needed
             //byte[] jardata = Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource(jarPath).toURI()));
-            byte[] jardata = ByteStreams.toByteArray(this.getClass().getClassLoader().getResourceAsStream(jarPath));
+            byte[] jardata = ByteStreams.toByteArray(this.getClass().getClassLoader().getResourceAsStream(configParams.get("jarpath")));
 
             MsgEvent request = plugin.getGlobalControllerMsgEvent(MsgEvent.Type.CONFIG);
             request.setParam("action", "savetorepo");
@@ -114,43 +158,81 @@ public class ShellDataPlane
 
             MsgEvent response = plugin.sendRPC(request);
             if(response.paramsContains("is_saved")) {
-                if(Boolean.parseBoolean(response.getParam("is_saved"))) {
-
-                    MsgEvent add_request = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId());
-                    add_request.setParam("action", "pluginadd");
-                    add_request.setParam("configparams",response.getParam("configparams"));
-
-                    MsgEvent add_response = plugin.sendRPC(add_request);
-
-                    if(add_response.paramsContains("status_code")) {
-
-                        if(add_request.getParam("status_code").equals("10")) {
-                            streamInfo.setPluginId(add_request.getParam("pluginid"));
-
-                            MsgEvent config_request = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId(), streamInfo.getPluginId());
-                            config_request.setParam("action","config_process");
-                            config_request.setParam("stream_name", streamInfo.getIdentId());
-                            config_request.setParam("command","-interactive-");
-                            MsgEvent config_response = plugin.sendRPC(config_request);
-                            logger.error(config_response.getParams().toString());
-
-                            MsgEvent start_request = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId(), streamInfo.getPluginId());
-                            start_request.setParam("action","start_process");
-                            start_request.setParam("stream_name", streamInfo.getIdentId());
-
-                            MsgEvent start_response = plugin.sendRPC(start_request);
-                            logger.error(start_response.getParams().toString());
-
-                        }
-                    }
-                    logger.error(add_response.getParams().toString());
+                if (Boolean.parseBoolean(response.getParam("is_saved"))) {
+                    isAdded = true;
+                } else {
+                    logger.error("!response.getParam(\"is_saved\") response.getParams(): " + response.getParams().toString());
                 }
+            } else {
+                logger.error("!response.paramsContains(\"is_saved\") response.getParams(): " + response.getParams().toString());
             }
 
-            logger.error(response.getParams().toString());
+        } catch (Exception ex) {
+            logger.error("addExecToRepo: " + ex.getMessage());
+        }
+        return isAdded;
+    }
+
+    private ShellInfo initExecutor(ShellInfo streamInfo) {
+
+        try {
+
+            Map<String, String> configParams = getExeConfigParams();
+
+            if(!execRepoCheck(configParams)) {
+                logger.error("Adding plugin to repo");
+                if(addExecToRepo(configParams)) {
+                    logger.error("Added plugin to repo");
+                } else {
+                    logger.error("Failed to add to repo");
+                }
+            } else {
+                logger.error("plugin found in repo");
+            }
+
+            MsgEvent add_request = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId());
+            add_request.setParam("action", "pluginadd");
+            add_request.setCompressedParam("configparams",gson.toJson(configParams));
+
+            MsgEvent add_response = plugin.sendRPC(add_request);
+            logger.error("add_response: " + add_response.getParams());
+            if(add_response.paramsContains("status_code")) {
+                logger.error("STATUS CODE EXISTS: [" + add_response.paramsContains("status_code") + "]");
+                logger.error("GET STATUS CODE: [" + add_response.getParam("status_code") + "]");
+                if(add_response.getParam("status_code").equals("10")) {
+
+                    streamInfo.setPluginId(add_response.getParam("pluginid"));
+
+                    MsgEvent config_request = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId(), streamInfo.getPluginId());
+                    config_request.setParam("action","config_process");
+                    config_request.setParam("stream_name", streamInfo.getIdentId());
+                    config_request.setParam("command","-interactive-");
+                    MsgEvent config_response = plugin.sendRPC(config_request);
+                    logger.error("responce from interactive config: " + config_response.getParams().toString());
+
+                    MsgEvent start_request = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId(), streamInfo.getPluginId());
+                    start_request.setParam("action","start_process");
+                    start_request.setParam("stream_name", streamInfo.getIdentId());
+
+                    MsgEvent start_response = plugin.sendRPC(start_request);
+                    logger.error("responce from interactive start: " + start_response.getParams().toString());
+
+                } else {
+                    logger.error("!add_request.getParam(\"status_code\").equals(\"10\") status_code= " + add_response.getParam("status_code") );
+                }
+            } else{
+                logger.error("!add_response.paramsContains(\"status_code\") " + add_response.getParams());
+            }
+            logger.error("add_responce: " + add_response.getParams().toString());
+
 
         } catch (Exception ex) {
-            logger.error(ex.getMessage());
+            logger.error("initExecutor " + ex.getMessage());
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            ex.printStackTrace(pw);
+            logger.error(sw.toString());
+
         }
         return streamInfo;
     }
