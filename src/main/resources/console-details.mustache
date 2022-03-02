@@ -1,5 +1,5 @@
 {{> header}}
-<div class="console"></div>
+<div id="console"></div>
 
 <link rel="stylesheet" href="https://unpkg.com/jquery.terminal/css/jquery.terminal.min.css"/>
 <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
@@ -34,29 +34,80 @@
         greet = 'WARNING: EXECUTOR NOT INSTALLED FOR THIS AGENT!!!\nCommands will NOT work.\n';
     }*/
 
-    var socket = new WebSocket("ws://"+baseURL+"/dashboard/shellstream");
-    var isInitConnect = true;
-    $('.console').terminal(function(command, term) {
-        socket.onmessage = function(msg) {
-            term.resume();
-            term.echo(msg.data);
-        };
-        term.pause();
-        socket.send(command);
-        console.log(command);
+    var last_command;
 
-    },
-    { 
-        greetings: 'Cresco Web-Based Console\n\nAgent: ' + agent + '\tRegion: ' + region + '\n',
-        onBeforeCommand: function (command) {
-            if(isInitConnect) {
-                initial_data = {"ident_key":"stream_name", "ident_id": crypto.randomUUID(), "io_type_key": "type", "output_id": "output", "input_id": "input", "region_id": region, "agent_id": agent};
-                socket.send(JSON.stringify(initial_data));
-                isInitConnect = false;
+    function connect() {
+        var ident_id = crypto.randomUUID();
+        var socket = new WebSocket("ws://"+baseURL+"/dashboard/shellstream");
+        var isInitConnect = true;
+
+        socket.onopen = function(e){
+            $.terminal.active().echo('Connecting to WebSocket...');
+            var initial_data = {"ident_key":"stream_name", "ident_id": ident_id, "io_type_key": "type", "output_id": "output", "input_id": "input", "region_id": region, "agent_id": agent};
+            socket.send(JSON.stringify(initial_data));
+            isInitConnect = false;
+        };
+
+        socket.onclose = function(e) {
+            $.terminal.active().echo('Socket is closed. Reconnect will be attempted in 1 second. Reason: ' + e.reason);
+            setTimeout(function() {
+                // reconnection if socket closes
+                connect();
+            }, 1000); //1 sec
+        };
+
+        socket.onerror = function(err) {
+            $.terminal.active().echo('Socket encountered error: ' + err.message + 'Closing socket');
+            socket.close();
+        };
+
+        socket.onmessage = function(msg) {
+            try {
+                var connection = JSON.parse(msg.data);
+                if (connection.status_code == "10") {
+                    $.terminal.active().resume();
+                    $.terminal.active().echo(connection.status_desc); 
+                } else {
+                    $.terminal.active().resume();
+                    $.terminal.active().echo("An error has occured: " + connection.status_desc);
+                }
+            } catch(e) {
+                kill_last_command = localStorage.getItem("killLastCommand");
+                if (kill_last_command !== null) {
+                    localStorage.removeItem("killLastCommand");
+                    kill_last_command = kill_last_command.split(" ")[0];
+                    $.terminal.active().echo("Killing previous command: " + kill_last_command + "...");
+                    socket.send("tasklist | find /i \""+kill_last_command+".exe\" && taskkill /im \""+kill_last_command+".exe\" /F || echo process \""+kill_last_command+".exe\" not running");
+                }
+                $.terminal.active().resume();
+                $.terminal.active().echo(msg.data);
             }
-            return true;
-        }
-    });
-    
+        };
+
+        // initializing the terminal
+        $('#console').terminal(function(command, term) {
+            term.pause();
+            socket.send(command);
+            last_command = command;
+        },
+        { 
+            greetings: 'Cresco Web-Based Console\n\nAgent: ' + agent + '\tRegion: ' + region + '\n',
+            keymap: {
+                    'CTRL+C': function(ev) {
+                        localStorage.setItem("killLastCommand", last_command);
+                        location.reload();
+                        //last_command = last_command.split(" ")[0];
+                        //console.log(last_command);
+                        //socket.send("tasklist | find /i \""+last_command+".exe\" && taskkill /im \""+last_command+".exe\" /F || echo process \""+last_command+".exe\" not running");
+                        return false;
+                    }
+                }
+        });
+    }
+
+    // initial connection on page load
+    connect(); 
+
+
 </script>
 {{> footer}}

@@ -14285,8 +14285,9 @@ pre {
   height: auto !important;
 }
 
-.console {
+#console {
   min-height: 89vh;
+  max-height: 89vh;
 }
 
 /*# sourceMappingURL=style.css.map */
