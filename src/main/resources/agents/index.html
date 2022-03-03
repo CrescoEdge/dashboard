@@ -1,3 +1,4 @@
+<!-- THIS FILE ISN"T USED SEE agents.mustache -->
 {% extends "page.html" %}
 
 {% block title %}Agents{% endblock %}
@@ -108,7 +109,7 @@
                         body += '<td>' + v.location + '</td>';
                         body += '<td>' + v.environment + '</td>';
                         body += '<td>' + v.platform + '</td>';
-                        body += '<td>' + v.plugins + '</td>';
+                        body += '<td>' + v.plugins + '<a href="/dashboard/agents/console/' +v.region+ '/' +v.name+ '"><i class="fa fa-terminal" style="float:right; border-radius: 20%; border: 1px solid #000;font-size: 15px;padding: 3px;color: black;"></i></a></td>';
                         body += '</tr>';
                     });
                     agents_body.html(body);
