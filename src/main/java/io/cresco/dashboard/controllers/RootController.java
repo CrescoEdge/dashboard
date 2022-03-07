@@ -138,19 +138,20 @@ public class RootController {
                               @FormParam("rememberMe") Boolean rememberMe,
                               @FormParam("redirect") String redirect) {
         try {
-            if (plugin == null) {
-                if (username == null || username.equals("") || !username.toLowerCase().trim().equals("admin") ||
-                        password == null || password.equals("") || !password.toLowerCase().trim().equals("cresco")) {
+            // if (plugin == null) {
+
+            //     if (username == null || username.equals("") || !username.toLowerCase().trim().equals("admin") ||
+            //             password == null || password.equals("") || !password.toLowerCase().trim().equals("cresco")) {
+            //         NewCookie errorCookie = new NewCookie(LOGIN_ERROR_COOKIE_NAME, "Invalid Username or Password!", null, null, null, 60 * 60, false);
+            //         return Response.seeOther(new URI("/dashboard/login")).cookie(errorCookie).build();
+            //     }
+            // } else {
+                if (username == null || username.equals("") || !username.toLowerCase().trim().equals(plugin.getConfig().getStringParam("username").toLowerCase().trim()) ||
+                        password == null || password.equals("") || !password.toLowerCase().trim().equals(plugin.getConfig().getStringParam("password").toLowerCase().trim())) {
                     NewCookie errorCookie = new NewCookie(LOGIN_ERROR_COOKIE_NAME, "Invalid Username or Password!", null, null, null, 60 * 60, false);
                     return Response.seeOther(new URI("/dashboard/login")).cookie(errorCookie).build();
                 }
-            } else {
-                if (username == null || username.equals("") || !username.toLowerCase().trim().equals(plugin.getConfig().getStringParam("username", "admin").toLowerCase().trim()) ||
-                        password == null || password.equals("") || !password.toLowerCase().trim().equals(plugin.getConfig().getStringParam("password", "cresco").toLowerCase().trim())) {
-                    NewCookie errorCookie = new NewCookie(LOGIN_ERROR_COOKIE_NAME, "Invalid Username or Password!", null, null, null, 60 * 60, false);
-                    return Response.seeOther(new URI("/dashboard/login")).cookie(errorCookie).build();
-                }
-            }
+            //}
             LoginSession loginSession = LoginSessionService.create(username.trim(), rememberMe != null);
             /*
             if(loginSession == null) {
