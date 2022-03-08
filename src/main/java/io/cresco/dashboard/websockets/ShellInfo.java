@@ -6,7 +6,8 @@ public class ShellInfo {
     private String identKey;
     private String identId;
     private String stream_query;
-    private String listenerId;
+    private String stdoutlistenerId;
+    private String stderrlistenerId;
     private String ioTypeKey;
     private String outputId;
     private String inputId;
@@ -86,12 +87,20 @@ public class ShellInfo {
         this.stream_query = stream_query;
     }
 
-    public String getListenerId() {
-        return listenerId;
+    public String getStdoutListenerId() {
+        return stdoutlistenerId;
     }
 
-    public void setListenerId(String listenerId) {
-        this.listenerId = listenerId;
+    public void setStdoutListenerId(String listenerId) {
+        this.stdoutlistenerId = listenerId;
+    }
+
+    public String getStderrListenerId() {
+        return stderrlistenerId;
+    }
+
+    public void setStderrListenerId(String listenerId) {
+        this.stderrlistenerId = listenerId;
     }
 
     public String getRegionId() {

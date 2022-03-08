@@ -17,8 +17,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Type;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.Attributes;
@@ -125,7 +123,6 @@ public class ShellDataPlane
             repo_list_request.setParam("action", "listpluginsrepo");
             MsgEvent repo_list_response = plugin.sendRPC(repo_list_request);
             String outputString = repo_list_response.getCompressedParam("listpluginsrepo");
-            logger.error(outputString);
             Map<String, List<Map<String, String>>> myRepoMap = gson.fromJson(repo_list_response.getCompressedParam("listpluginsrepo"), type);
 
             for(Map<String,String> pluginMap : myRepoMap.get("plugins")) {
@@ -173,6 +170,43 @@ public class ShellDataPlane
         return isAdded;
     }
 
+    private boolean removeExecutor(ShellInfo streamInfo) {
+
+        boolean isRemoved = false;
+        try {
+
+            MsgEvent stop_request = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId(), streamInfo.getPluginId());
+            stop_request.setParam("action","end_process");
+            stop_request.setParam("stream_name", streamInfo.getIdentId());
+
+            MsgEvent stop_response = plugin.sendRPC(stop_request);
+            logger.debug("responce from interactive stop: " + stop_response.getParams().toString());
+
+            MsgEvent remove_request = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId());
+            remove_request.setParam("action", "pluginremove");
+            remove_request.setParam("pluginid",streamInfo.getPluginId());
+
+            MsgEvent remove_response = plugin.sendRPC(remove_request);
+            logger.debug("remove_response: " + remove_response.getParams());
+
+            if(remove_response.getParam("status_code").equals("7")) {
+                isRemoved = true;
+            } else {
+                logger.error("removeExecutor error: " + remove_response.getParams());
+            }
+
+
+        } catch (Exception ex) {
+            logger.error("removeExecutor: " + ex.getMessage());
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            ex.printStackTrace(pw);
+            logger.error(sw.toString());
+        }
+
+        return isRemoved;
+    }
+
     private ShellInfo initExecutor(ShellInfo streamInfo) {
 
         try {
@@ -180,14 +214,14 @@ public class ShellDataPlane
             Map<String, String> configParams = getExeConfigParams();
 
             if(!execRepoCheck(configParams)) {
-                logger.error("Adding plugin to repo");
+                logger.debug("Adding plugin to repo");
                 if(addExecToRepo(configParams)) {
-                    logger.error("Added plugin to repo");
+                    logger.debug("Added plugin to repo");
                 } else {
                     logger.error("Failed to add to repo");
                 }
             } else {
-                logger.error("plugin found in repo");
+                logger.debug("plugin found in repo");
             }
 
             MsgEvent add_request = plugin.getGlobalAgentMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId());
@@ -195,10 +229,10 @@ public class ShellDataPlane
             add_request.setCompressedParam("configparams",gson.toJson(configParams));
 
             MsgEvent add_response = plugin.sendRPC(add_request);
-            logger.error("add_response: " + add_response.getParams());
+            logger.debug("add_response: " + add_response.getParams());
             if(add_response.paramsContains("status_code")) {
-                logger.error("STATUS CODE EXISTS: [" + add_response.paramsContains("status_code") + "]");
-                logger.error("GET STATUS CODE: [" + add_response.getParam("status_code") + "]");
+                logger.debug("STATUS CODE EXISTS: [" + add_response.paramsContains("status_code") + "]");
+                logger.debug("GET STATUS CODE: [" + add_response.getParam("status_code") + "]");
                 if(add_response.getParam("status_code").equals("10")) {
 
                     streamInfo.setPluginId(add_response.getParam("pluginid"));
@@ -208,14 +242,14 @@ public class ShellDataPlane
                     config_request.setParam("stream_name", streamInfo.getIdentId());
                     config_request.setParam("command","-interactive-");
                     MsgEvent config_response = plugin.sendRPC(config_request);
-                    logger.error("responce from interactive config: " + config_response.getParams().toString());
+                    logger.debug("responce from interactive config: " + config_response.getParams().toString());
 
                     MsgEvent start_request = plugin.getGlobalPluginMsgEvent(MsgEvent.Type.CONFIG,streamInfo.getRegionId(), streamInfo.getAgentId(), streamInfo.getPluginId());
                     start_request.setParam("action","start_process");
                     start_request.setParam("stream_name", streamInfo.getIdentId());
 
                     MsgEvent start_response = plugin.sendRPC(start_request);
-                    logger.error("responce from interactive start: " + start_response.getParams().toString());
+                    logger.debug("responce from interactive start: " + start_response.getParams().toString());
 
                 } else {
                     logger.error("!add_request.getParam(\"status_code\").equals(\"10\") status_code= " + add_response.getParam("status_code") );
@@ -223,7 +257,7 @@ public class ShellDataPlane
             } else{
                 logger.error("!add_response.paramsContains(\"status_code\") " + add_response.getParams());
             }
-            logger.error("add_responce: " + add_response.getParams().toString());
+            logger.debug("add_responce: " + add_response.getParams().toString());
 
 
         } catch (Exception ex) {
@@ -262,7 +296,7 @@ public class ShellDataPlane
                     updateMessage.setText(message);
                     updateMessage.setStringProperty(identKey, identId);
                     updateMessage.setStringProperty(ioTypeKey, inputId);
-                    logger.error("DASHBOARD MESSAGE TO EXEC: " + updateMessage.getText());
+                    logger.debug("DASHBOARD MESSAGE TO EXEC: " + updateMessage.getText());
                     latestOutput = updateMessage.getText();
 
                     plugin.getAgentService().getDataPlaneService().sendMessage(TopicType.AGENT, updateMessage);
@@ -326,7 +360,7 @@ public class ShellDataPlane
 
 
                         if (msg instanceof TextMessage) {
-                            logger.error("DASHBOARD STDOUT INCOMING FROM EXEC: " + ((TextMessage) msg).getText());
+                            logger.debug("DASHBOARD STDOUT INCOMING FROM EXEC: " + ((TextMessage) msg).getText());
                             sess.getAsyncRemote().sendObject(((TextMessage) msg).getText());
                         } else {
                             logger.error("Expected Text message");
@@ -343,7 +377,7 @@ public class ShellDataPlane
 
             String listenerid = plugin.getAgentService().getDataPlaneService().addMessageListener(TopicType.AGENT,ml,stream_query);
 
-            streamInfo.setListenerId(listenerid);
+            streamInfo.setStdoutListenerId(listenerid);
 
             synchronized (lockSessionMap) {
                 sessionMap.put(sess.getId(), streamInfo);
@@ -371,8 +405,8 @@ public class ShellDataPlane
 
                         if (msg instanceof TextMessage) {
                             String incomingString = ((TextMessage) msg).getText();
-                            logger.error("DASHBOARD STDERR INCOMING FROM EXEC: " + incomingString);
-                            logger.error("Last command: " + latestOutput);
+                            logger.debug("DASHBOARD STDERR INCOMING FROM EXEC: " + incomingString);
+                            logger.debug("Last command: " + latestOutput);
                             sess.getAsyncRemote().sendObject(incomingString);
                             /*
                             boolean gobbleLine = false;
@@ -409,10 +443,8 @@ public class ShellDataPlane
 
             String listenerid = plugin.getAgentService().getDataPlaneService().addMessageListener(TopicType.AGENT,ml,stream_query);
 
-            streamInfo.setListenerId(listenerid);
-
             synchronized (lockSessionMap) {
-                sessionMap.put(sess.getId(), streamInfo);
+                sessionMap.get(sess.getId()).setStderrListenerId(listenerid);
             }
 
             //sess.getAsyncRemote().sendObject("APIDataPlane Connected Session: " + sess.getId());
@@ -430,29 +462,31 @@ public class ShellDataPlane
     @OnClose
     public void onWebSocketClose(Session sess, CloseReason reason)
     {
-        //logger.info("Socket Closed: " + reason);
-        //System.out.println("Socket Closed: " + reason);
-        String listenerid = null;
+
+        //remove listeners
+        ShellInfo streamInfo;
         synchronized (lockSessionMap) {
-            listenerid = sessionMap.get(sess.getId()).getSessionId();
-        }
-        //so we don't get messages about disabling logger
-        if (listenerid != null) {
-            Plugin.pluginBuilder.getAgentService().getDataPlaneService().removeMessageListener(listenerid);
-        } else {
-            logger.error("onWebSocketClose(): sessionMap = null : closed: " + reason.getReasonPhrase());
+            streamInfo = sessionMap.remove(sess.getId());
         }
 
-        /*
-        if(activeHost.containsKey(sess.getId())) {
-            SessionInfo sessionInfo = activeHost.get(sess.getId());
-            logger.error("removing sessionId: " + sessionInfo.logSessionId + " from regionId: " + sessionInfo.regionId + " agentId: " + sessionInfo.agentId);
+        if(streamInfo == null) {
+            logger.error("onWebSocketClose: why is streamInfo Null?" );
         }
 
-         */
+        //remove session
         synchronized (lockSessions) {
             sessions.remove(sess);
         }
+
+        //remove plugin
+        if(!removeExecutor(streamInfo)) {
+            logger.error("onWebSocketClose: unable to removeExecutor " + streamInfo.getPluginId());
+        }
+
+
+        Plugin.pluginBuilder.getAgentService().getDataPlaneService().removeMessageListener(streamInfo.getStdoutListenerId());
+        Plugin.pluginBuilder.getAgentService().getDataPlaneService().removeMessageListener(streamInfo.getStderrListenerId());
+
     }
 
     @OnError
