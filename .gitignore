@@ -1,6 +1,4 @@
-# Created by .ignore support plugin (hsz.mobi)
-.idea/
-target/
-dashboard.iml
-build.sh
-node_modules/
+__pycache__/
+*.pyc
+.dash.pid
+*.log
