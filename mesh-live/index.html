@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Cresco Mesh Dashboard</title>
+<style>
+  :root{--bg:#0b1120;--panel:#111827;--panel2:#0f172a;--line:#1f2937;--txt:#e5e7eb;--dim:#94a3b8;--dim2:#64748b;
+        --green:#10b981;--amber:#f59e0b;--red:#ef4444;--blue:#0ea5e9;--indigo:#6366f1;--violet:#8b5cf6;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{position:sticky;top:0;z-index:5;background:rgba(11,17,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+  .hrow{max-width:1200px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff}
+  h1{font-size:16px;margin:0}.sub{font-size:12px;color:var(--dim)}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px}
+  .tabs{max-width:1200px;margin:0 auto;padding:0 20px;display:flex;gap:2px}
+  .tab{padding:9px 14px;font-size:13px;font-weight:600;color:var(--dim);border:none;background:none;border-bottom:2px solid transparent;cursor:pointer}
+  .tab:hover{color:var(--txt)}.tab.active{color:#60a5fa;border-bottom-color:#3b82f6}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px 20px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .tile .l{font-size:11px;color:var(--dim2);text-transform:uppercase;letter-spacing:.04em}
+  .tile .v{font-size:25px;font-weight:700;margin-top:2px}.tile .s{font-size:11px;color:var(--dim);margin-top:2px}
+  .grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+  .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+  .card h2{font-size:13px;margin:0 0 4px;font-weight:600}.card .hint{font-size:11px;color:var(--dim2);margin:0 0 8px}
+  svg{width:100%;height:auto;display:block}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin-top:8px}
+  .lg{display:inline-flex;align-items:center;gap:5px}.swatch{width:10px;height:10px;border-radius:50%}
+  .route{display:flex;align-items:center;justify-content:space-between;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:7px}
+  .route .to{font-weight:600}.route .m{font-size:11px;color:var(--dim2)}
+  .badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .b-direct{background:rgba(16,185,129,.15);color:#34d399}.b-viaG{background:rgba(139,92,246,.18);color:#a78bfa}
+  .b-good{background:rgba(16,185,129,.15);color:#34d399}.b-bad{background:rgba(239,68,68,.15);color:#f87171}
+  .b-warn{background:rgba(245,158,11,.15);color:#fbbf24}.b-role{background:rgba(99,102,241,.18);color:#a5b4fc}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim2);font-weight:600;font-size:11px;text-transform:uppercase}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+  .err{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#fcd34d;border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:14px}
+  .muted{color:var(--dim2)}.kv{display:flex;justify-content:space-between;padding:3px 0;font-size:12px}.kv .k{color:var(--dim2)}
+  .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:3px}.bar>i{display:block;height:100%}
+  .nodehdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  .chip{font-size:10px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div class="brand"><div class="logo">C</div>
+      <div><h1>Cresco Mesh</h1><div class="sub" id="hostline">connecting…</div></div></div>
+    <div class="sub"><span class="dot" id="statusdot" style="background:#f59e0b"></span><span id="statustext">…</span></div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+</header>
+<div class="wrap"><div id="banner"></div><div id="view"></div></div>
+<script>
+const W=760,H=520,CX=W/2,CY=H/2,REFRESH=5000;
+const TABS=['Overview','Globals','Routing','Nodes','Links','Metrics'];
+let TAB='Overview', SNAP=null;
+const shortN=s=>(s||'').replace(/^global-r(\d+)_gc\d+$/,'G$1').replace('global-region_global-controller','GLOBAL')
+  .replace('_edge-controller','~').replace('edge-region','R').replace(/~\w*?(\d+[a-z]?)$/,'').replace('global-region','GLOBAL')||s;
+const rttColor=r=>(r==null||r<0)?'#64748b':(r<25?'#10b981':(r<55?'#f59e0b':'#ef4444'));
+const svgEl=(t,a={})=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const x in a)e.setAttribute(x,a[x]);return e;};
+const h=(html)=>{const d=document.createElement('div');d.innerHTML=html;return d;};
+function tile(l,v,s,color){return `<div class="tile"><div class="l">${l}</div><div class="v"${color?` style="color:${color}"`:''}>${v}</div><div class="s">${s||''}</div></div>`;}
+
+// ---- shared: build the topology graph SVG from network state ----
+function graphSVG(net){
+  let nodes=(net.nodes||[]).slice();
+  // a node's RouteView never contains ITSELF, so the observer global is missing -> add it (center of the mesh)
+  if(net.observer && !nodes.some(n=>n.node===net.observer))
+    nodes.push({node:net.observer,role:'global',region:net.observer.split('_')[0]});
+  const em={};(net.edges||[]).forEach(e=>{const k=[e.from,e.to].sort().join('|');const c=em[k];
+    if(!c||e.rtt<c.rtt)em[k]={a:e.from,b:e.to,rtt:e.rtt,cost:e.cost,conns:Math.max(e.conns,c?c.conns:0)};else c.conns=Math.max(c.conns,e.conns);});
+  const edges=Object.values(em),isPeer=e=>!String(e.a).includes('global')&&!String(e.b).includes('global');
+  // TIERS: globals (center), regions (inner ring), agents (outer ring, radially outside their region).
+  const globals=nodes.filter(n=>n.role==='global').sort((a,b)=>a.node.localeCompare(b.node));
+  const regions=nodes.filter(n=>n.role==='region').sort((a,b)=>a.node.localeCompare(b.node));
+  const agents =nodes.filter(n=>n.role==='agent');
+  const regByName={};regions.forEach(n=>regByName[n.region]=n);
+  const pos={}, RG=Math.min(W,H)*0.13, R1=Math.min(W,H)*0.31, R2=Math.min(W,H)*0.46;
+  const big=nodes.length>30;
+  if(globals.length<=1){ if(globals[0])pos[globals[0].node]=[CX,CY]; }
+  else globals.forEach((n,i)=>{const a=-Math.PI/2+i*2*Math.PI/globals.length;pos[n.node]=[CX+RG*Math.cos(a),CY+RG*Math.sin(a)];});
+  const regAng={};
+  regions.forEach((n,i)=>{const a=-Math.PI/2+i*2*Math.PI/Math.max(1,regions.length);regAng[n.region]=a;pos[n.node]=[CX+R1*Math.cos(a),CY+R1*Math.sin(a)];});
+  const sib={};
+  agents.forEach(n=>{let a=regAng[n.region];const has=a!=null;
+    if(!has)a=-Math.PI/2+(Object.keys(sib).length)*2*Math.PI/Math.max(1,agents.length);
+    const i=(sib[n.region]=(sib[n.region]||0)+1)-1;const off=has?i*0.06:0;   // stack siblings, else spread
+    pos[n.node]=[CX+R2*Math.cos(a+off),CY+R2*Math.sin(a+off)];});
+  const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`});
+  // (1) agent -> region parent SPOKES = the hierarchy (RouteView agent edges point at a _parent pseudo-node,
+  //     so draw them explicitly from each agent to its region controller).
+  agents.forEach(n=>{const reg=regByName[n.region];if(!reg)return;const p1=pos[n.node],p2=pos[reg.node];if(!p1||!p2)return;
+    svg.appendChild(svgEl('line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:'#22d3ee','stroke-width':1,'stroke-opacity':0.3}));});
+  // (2) measured mesh edges (region<->region peer, region->global uplink, global<->global)
+  edges.forEach(e=>{const p1=pos[e.a],p2=pos[e.b];if(!p1||!p2)return;const col=rttColor(e.rtt),mx=(p1[0]+p2[0])/2,my=(p1[1]+p2[1])/2;
+    svg.appendChild(svgEl('line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:col,'stroke-width':Math.min(5,1+(e.conns||1)*1.2),'stroke-opacity':big?0.4:0.75,'stroke-dasharray':isPeer(e)?'6 4':'0'}));
+    if(!big){svg.appendChild(svgEl('rect',{x:mx-26,y:my-9,width:52,height:16,rx:4,fill:'#0f172a','fill-opacity':0.82}));
+      const t=svgEl('text',{x:mx,y:my+3,'text-anchor':'middle','font-size':10,fill:col,'font-weight':600});t.textContent=`${e.rtt}ms${(e.conns||1)>1?' ×'+e.conns:''}`;svg.appendChild(t);}});
+  const draw=(n)=>{const p=pos[n.node];if(!p)return;const g=n.role==='global',ag=n.role==='agent';
+    const r=g?(big?16:24):(ag?5:(big?9:18)),fill=g?'#6366f1':(ag?'#22d3ee':'#0ea5e9');
+    svg.appendChild(svgEl('circle',{cx:p[0],cy:p[1],r:r,fill:fill,stroke:'#fff','stroke-opacity':g?0.6:0.3,'stroke-width':g?2:1}));
+    if(g||(!ag&&!big)){const t=svgEl('text',{x:p[0],y:p[1]+3,'text-anchor':'middle','font-size':g?12:10,fill:'#fff','font-weight':700});t.textContent=shortN(n.node);svg.appendChild(t);}};
+  agents.forEach(draw);regions.forEach(draw);globals.forEach(draw);   // globals drawn last = on top
+  return {svg,edges,isPeer};
+}
+const legendHTML=`<div class="legend"><span class="lg"><span class="swatch" style="background:var(--green)"></span>&lt;25ms</span>
+  <span class="lg"><span class="swatch" style="background:var(--amber)"></span>25–55ms</span>
+  <span class="lg"><span class="swatch" style="background:var(--red)"></span>&gt;55ms</span>
+  <span class="muted">— solid=uplink · – –region↔region (peer/inferred) · thickness=connectors</span></div>`;
+
+// ---- TAB RENDERERS ----
+function vOverview(s){
+  const sm=s.summary||{},net=s.network||{nodes:[],edges:[],routes:[]};
+  const v=document.createElement('div');
+  v.innerHTML=`<div class="tiles">
+    ${tile('Regions',(sm.regions||1)-1,'in mesh')}${tile('Nodes',sm.nodes||0,'controllers')}
+    ${tile('Agents',sm.agents||0,'reachable '+(sm.reachable_agents||0))}${tile('Plugins',sm.plugins||0,'loaded')}
+    ${tile('Links',sm.links_measured||sm.links||0,(sm.peer_links||0)+' region↔region','')}
+    ${tile('Worst RTT',(sm.worst_rtt_ms||0).toFixed(0)+'ms',shortN((sm.worst_link||'').split(' ')[0]),'#f87171')}</div>`;
+  const c=document.createElement('div');c.className='card';
+  c.innerHTML=`<h2>Live topology</h2><p class="hint">colour=RTT · thickness=connectors · dashed=region↔region</p>`;
+  const g=graphSVG(net);if(net.nodes.length)c.appendChild(g.svg);else c.appendChild(h('<p class="muted" style="text-align:center;padding:24px">learning topology…</p>'));
+  c.appendChild(h(legendHTML));v.appendChild(c);
+  return v;
+}
+function vRouting(s){
+  const net=s.network||{nodes:[],edges:[],routes:[]};const v=document.createElement('div');
+  const g=graphSVG(net);const routes=net.routes||[];
+  const em={};(net.edges||[]).forEach(e=>{const k=[e.from,e.to].sort().join('|');const c=em[k];if(!c||e.rtt<c.rtt)em[k]={a:e.from,b:e.to,rtt:e.rtt,cost:e.cost,conns:Math.max(e.conns,c?c.conns:0)};else c.conns=Math.max(c.conns,e.conns);});
+  const edges=Object.values(em),isPeer=e=>!String(e.a).includes('global')&&!String(e.b).includes('global');
+  v.innerHTML=`<div class="tiles">
+    ${tile('Nodes learned',net.nodes.length,'via dataplane push')}
+    ${tile('Links measured',edges.length,edges.filter(isPeer).length+' region↔region')}
+    ${tile('Peer/inferred',edges.filter(isPeer).length,'self-organized + configured','#34d399')}
+    ${tile('Path choices',routes.length,routes.filter(r=>r.choice==='via-G').length+' steered via-G','#a78bfa')}</div>`;
+  const row=document.createElement('div');row.className='grid2';
+  const gc=document.createElement('div');gc.className='card';
+  gc.innerHTML=`<h2>Live learned topology ${net.observer?'· observer '+shortN(net.observer):''}</h2><p class="hint">what the mesh has learned + how it steers traffic</p>`;
+  if(net.nodes.length)gc.appendChild(g.svg);else gc.appendChild(h('<p class="muted" style="text-align:center;padding:24px">No route-state yet — learning…</p>'));
+  gc.appendChild(h(legendHTML));
+  const rc=document.createElement('div');rc.className='card';
+  let rh=`<h2>Path decisions ${net.observer?'· '+shortN(net.observer):''}</h2><p class="hint">direct vs via-global, chosen by measured latency</p>`;
+  if(!routes.length)rh+='<p class="muted">No path choices yet.</p>';
+  routes.forEach(r=>{rh+=`<div class="route"><div><div class="to">→ ${shortN(r.to)}</div><div class="m">direct ${r.directRtt}ms · via-G ${r.viaGRtt}ms</div></div><span class="badge ${r.choice==='via-G'?'b-viaG':'b-direct'}">${r.choice}</span></div>`;});
+  rc.innerHTML=rh;row.appendChild(gc);row.appendChild(rc);v.appendChild(row);
+  // link table
+  const lc=document.createElement('div');lc.className='card';
+  let t=`<h2>All measured links (learned graph)</h2><div style="overflow-x:auto"><table><thead><tr><th>From</th><th>To</th><th>Kind</th><th class="n">RTT</th><th class="n">Cost</th><th class="n">Conns</th></tr></thead><tbody>`;
+  edges.sort((a,b)=>b.rtt-a.rtt).forEach(e=>{t+=`<tr><td>${shortN(e.a)}</td><td>${shortN(e.b)}</td><td>${isPeer(e)?'region↔region':'uplink'}</td><td class="n" style="color:${rttColor(e.rtt)}">${e.rtt}</td><td class="n">${e.cost}</td><td class="n">${e.conns}</td></tr>`;});
+  lc.innerHTML=t+'</tbody></table></div>';v.appendChild(lc);
+  return v;
+}
+function vNodes(s){
+  const v=document.createElement('div');const grid=document.createElement('div');grid.className='grid-cards';
+  const ns=(s.nodes||[]).slice().sort((a,b)=>(a.role!=='GLOBAL')-(b.role!=='GLOBAL')||a.id.localeCompare(b.id));
+  ns.forEach(n=>grid.appendChild(cpuCard(n,false)));
+  if(!ns.length)v.innerHTML='<div class="card"><p class="muted">No node detail yet.</p></div>';
+  v.appendChild(grid);return v;
+}
+function vLinks(s){
+  const v=document.createElement('div');const c=document.createElement('div');c.className='card';
+  let t=`<h2>Federation links · ${(s.links||[]).length} measured</h2><p class="hint">region↔region (peer) and region↔global (uplink) broker bridges</p>
+    <div style="overflow-x:auto"><table><thead><tr><th>A</th><th>B</th><th>Kind</th><th class="n">RTT</th><th class="n">Jitter</th><th class="n">Cost</th><th>Quality</th><th>Redundant</th></tr></thead><tbody>`;
+  (s.links||[]).slice().sort((a,b)=>b.rtt_ms-a.rtt_ms).forEach(l=>{
+    const q=l.quality||'',qb=q==='good'?'b-good':q==='bad'?'b-bad':'b-warn';
+    t+=`<tr><td>${shortN(l.a)}</td><td>${shortN(l.b)}</td><td>${l.kind}</td>
+      <td class="n" style="color:${rttColor(l.rtt_ms)}">${(l.rtt_ms||0).toFixed(1)}</td>
+      <td class="n">${(l.jitter_ms||0).toFixed(2)}</td><td class="n">${(l.cost||0).toFixed(0)}</td>
+      <td><span class="badge ${qb}">${q||'—'}</span></td><td>${l.redundant?'yes':'—'}</td></tr>`;});
+  c.innerHTML=t+'</tbody></table></div>';v.appendChild(c);return v;
+}
+function vMetrics(s){
+  const v=document.createElement('div');const c=document.createElement('div');c.className='card';
+  let t=`<h2>Node health metrics</h2><p class="hint">CPU = this JVM's own cores used (per-node), NOT host load</p><div style="overflow-x:auto"><table><thead><tr><th>Node</th><th>Role</th><th class="n">Cores used</th><th class="n">% of host</th><th class="n">Host load 1m</th><th class="n">JVM MB</th><th class="n">CPUs</th></tr></thead><tbody>`;
+  (s.nodes||[]).slice().sort((a,b)=>(a.role!=='GLOBAL')-(b.role!=='GLOBAL')||a.id.localeCompare(b.id)).forEach(n=>{const hl=n.health||{};const cc=hl.cpu_count||0;const hp=(hl.cpu_load!=null&&cc)?(hl.cpu_load/cc*100):null;
+    t+=`<tr><td>${shortN(n.id)}</td><td><span class="badge b-role">${n.role}</span></td>
+      <td class="n">${hl.cpu_load!=null?hl.cpu_load.toFixed(2):'—'}</td>
+      <td class="n">${hp!=null?hp.toFixed(1)+'%':'—'}</td>
+      <td class="n">${hl.load_avg_1m!=null?hl.load_avg_1m.toFixed(1):'—'}</td>
+      <td class="n">${hl.jvm_mem_used_mb!=null?hl.jvm_mem_used_mb.toFixed(0):'—'}</td>
+      <td class="n">${cc||'—'}</td></tr>`;});
+  c.innerHTML=t+'</tbody></table></div>';v.appendChild(c);
+  return v;
+}
+// shared node health card. CPU is shown as CORES USED + % of the host's cores (so a node using
+// 2.4 of 224 cores reads as ~1%, NOT a pegged 240% bar).
+function cpuCard(n,star){
+  const hl=n.health||{};const cores=hl.cpu_load!=null?hl.cpu_load:null;const cc=hl.cpu_count||0;
+  const hostpct=(cores!=null&&cc)?Math.min(100,cores/cc*100):null;
+  const mem=hl.jvm_mem_used_mb,memc=hl.jvm_mem_committed_mb;const mempct=(mem&&memc)?Math.min(100,mem/memc*100):0;
+  const card=document.createElement('div');card.className='card';card.style.margin='0';
+  card.innerHTML=`<div class="nodehdr"><div><div style="font-weight:600">${shortN(n.id)}${star?' <span style="color:#a78bfa">★ leader</span>':''}</div><div class="muted" style="font-size:11px">${n.id.split('_')[0]}</div></div>
+    <span class="badge b-role">${n.role}</span></div>
+    <div class="kv"><span class="k">CPU (this node)</span><span>${cores!=null?cores.toFixed(2)+' cores'+(cc?' · '+hostpct.toFixed(1)+'% of host':''):'—'}</span></div>
+    ${hostpct!=null?`<div class="bar"><i style="width:${Math.max(1,hostpct)}%;background:${hostpct>80?'var(--red)':hostpct>40?'var(--amber)':'var(--green)'}"></i></div>`:''}
+    <div class="kv"><span class="k">Host load 1m</span><span>${hl.load_avg_1m!=null?hl.load_avg_1m.toFixed(1)+' / '+(cc||'?')+' cores (shared)':'—'}</span></div>
+    <div class="kv"><span class="k">JVM mem</span><span>${mem!=null?mem.toFixed(0)+' / '+(memc||0).toFixed(0)+' MB':'—'}</span></div>
+    ${mem!=null?`<div class="bar"><i style="width:${mempct}%;background:var(--indigo)"></i></div>`:''}
+    <div class="kv"><span class="k">CPUs · env</span><span>${cc||'—'} · ${n.environment||'—'}</span></div>
+    <div class="chips">${(n.plugins||[]).map(p=>`<span class="chip">${p}</span>`).join('')}</div>`;
+  return card;
+}
+function vGlobals(s){
+  const v=document.createElement('div');let co=s.coordinators||{};
+  const gnodes=(s.nodes||[]).filter(n=>n.role==='GLOBAL').sort((a,b)=>a.id.localeCompare(b.id));
+  // derive the coordinator summary client-side when the server RPC didn't supply it: leader = lowest
+  // path (the identity election policy), quorum = floor(N/2)+1 over the coordinator set.
+  if(co.leader==null && gnodes.length){
+    const ids=gnodes.map(n=>n.id);
+    co={coordinators:ids,leader:ids[0],epoch:co.epoch,live:ids.length,
+        quorum:Math.floor(ids.length/2)+1,has_quorum:true,rejected_stale_epochs:co.rejected_stale_epochs||0,_derived:true};
+  }
+  const set=(co.coordinators&&co.coordinators.length)?co.coordinators:gnodes.map(n=>n.id);
+  v.innerHTML=`<div class="tiles">
+    ${tile('Global controllers',set.length,'coordinator set (was: single static global)','#818cf8')}
+    ${tile('Elected leader',shortN(co.leader||'—'),'epoch '+(co.epoch!=null?co.epoch:'—'),'#a78bfa')}
+    ${tile('Quorum',(co.live!=null?co.live:set.length)+' / '+(co.quorum!=null?co.quorum:'—'),co.has_quorum?'has quorum ✓':'NO quorum',co.has_quorum?'#34d399':'#f87171')}
+    ${tile('Stale-epoch fences',co.rejected_stale_epochs!=null?co.rejected_stale_epochs:0,'split-brain guard')}</div>`;
+  const cc=document.createElement('div');cc.className='card';
+  let ch=`<h2>Coordinator set · ${set.length} globals</h2><p class="hint">more than one global; leader elected from the shared RouteView, epoch-fenced, majority quorum (2f+1)</p><div class="chips">`;
+  set.forEach(c=>{const isL=c===co.leader;ch+=`<span class="chip" style="${isL?'background:#4c1d95;color:#e9d5ff;font-weight:700':'background:#1e293b'}">${shortN(c)}${isL?' ★':''}</span>`;});
+  ch+='</div>';cc.innerHTML=ch;v.appendChild(cc);
+  const grid=document.createElement('div');grid.className='grid-cards';
+  gnodes.sort((a,b)=>a.id.localeCompare(b.id)).forEach(n=>grid.appendChild(cpuCard(n,n.id===co.leader)));
+  if(!gnodes.length)grid.appendChild(h('<div class="card"><p class="muted">No globals learned yet.</p></div>'));
+  v.appendChild(grid);return v;
+}
+const RENDER={Overview:vOverview,Globals:vGlobals,Routing:vRouting,Nodes:vNodes,Links:vLinks,Metrics:vMetrics};
+
+function paint(){
+  // tabs
+  const tb=document.getElementById('tabs');tb.innerHTML='';
+  TABS.forEach(t=>{const b=document.createElement('button');b.className='tab'+(t===TAB?' active':'');b.textContent=t;
+    b.onclick=()=>{TAB=t;paint();};tb.appendChild(b);});
+  const s=SNAP;const ok=s&&s.ok;const age=s&&s.ts?(Date.now()/1000-s.ts):999;const stale=age>30;
+  document.getElementById('hostline').textContent=s?`${s.host}:${s.port}`:'';
+  document.getElementById('statusdot').style.background=ok&&!stale?'#10b981':(ok?'#f59e0b':'#ef4444');
+  document.getElementById('statustext').textContent=(ok&&!stale?'Live':stale?'Stale':'Degraded')+(age<900?` · ${age.toFixed(0)}s ago`:'');
+  document.getElementById('banner').innerHTML=(s&&s.error)?`<div class="err">Backend: ${s.error} — showing last good data.</div>`:'';
+  const view=document.getElementById('view');view.innerHTML='';
+  if(!s){view.innerHTML='<p class="muted">Connecting to Cresco mesh…</p>';return;}
+  try{view.appendChild(RENDER[TAB](s));}catch(e){view.innerHTML=`<div class="err">render error: ${e}</div>`;}
+}
+async function poll(){try{const r=await fetch('/api/snapshot',{cache:'no-store'});SNAP=await r.json();}catch(e){}paint();}
+paint();poll();setInterval(poll,REFRESH);
+</script>
+</body>
+</html>
