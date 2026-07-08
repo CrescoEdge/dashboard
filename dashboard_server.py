@@ -227,7 +227,15 @@ class MeshPoller:
 
     def snapshot(self):
         with self._lock:
-            return dict(self._snapshot)
+            snap = dict(self._snapshot)
+        snap["tunnels"] = tunnel_snapshot()   # merged from the PUSHED stunnel_trace stream
+        # graph from the PUSHED link-state when the getnetworkstate POLL is empty/starved (push > pull).
+        polled = snap.get("network") or {}
+        if not (polled.get("nodes")):
+            pv = pushed_route_view()
+            if pv:
+                snap["network"] = pv
+        return snap
 
     def history(self):
         with self._lock:
@@ -553,6 +561,113 @@ class MeshPoller:
 
 POLLER = None
 
+# ---------------------------------------------------------------------------
+# PUSHED stunnel trace stream (subscribe, do not poll). Each tunnel's existence beacon
+# (type=tunnel) and its live traffic trace (hops + bits_per_second) arrive on the
+# cresco_msg_type='stunnel_trace' dataplane stream; we merge them by stunnel_id.
+# ---------------------------------------------------------------------------
+_TUNNELS = {}
+_TUN_LOCK = threading.Lock()
+_TUN_TTL = 15.0   # seconds before an unheard tunnel is dropped
+
+def _on_trace(message):
+    try:
+        d = json.loads(message) if isinstance(message, str) else message
+        sid = d.get("stunnel_id")
+        if not sid:
+            return
+        with _TUN_LOCK:
+            t = _TUNNELS.get(sid, {})
+            # existence/beacon fields
+            for k in ("src_region", "src_agent", "dst_region", "dst_agent", "src_port",
+                      "dst_host", "dst_port", "status", "clients"):
+                if d.get(k) is not None:
+                    t[k] = d[k]
+            # live traffic fields (only overwrite when this message carries them)
+            if d.get("hops"):
+                t["hops"] = d["hops"]
+            if d.get("bits_per_second") is not None and d.get("type") != "tunnel":
+                t["bits_per_second"] = d["bits_per_second"]
+                t["direction"] = d.get("direction", t.get("direction"))
+            if d.get("total_bytes") is not None:
+                t["total_bytes"] = d["total_bytes"]
+            t["stunnel_id"] = sid
+            t["_ts"] = time.time()
+            _TUNNELS[sid] = t
+    except Exception:
+        pass
+
+def tunnel_snapshot():
+    now = time.time()
+    with _TUN_LOCK:
+        for sid in [s for s, t in _TUNNELS.items() if now - t.get("_ts", 0) > _TUN_TTL]:
+            _TUNNELS.pop(sid, None)
+        out = []
+        for t in _TUNNELS.values():
+            o = {k: v for k, v in t.items() if k != "_ts"}
+            # a beacon with no recent traffic reads as 0 b/s (idle but existing)
+            if now - t.get("_ts", 0) > 6:
+                o["bits_per_second"] = "0"
+            out.append(o)
+        return sorted(out, key=lambda x: x.get("stunnel_id", ""))
+
+# ---------------------------------------------------------------------------
+# PUSHED link-state (route_lsa). Building the topology graph from the same pushed LSAs the mesh
+# gossips means the graph SURVIVES heavy load — unlike the getnetworkstate POLL, which starves when
+# a global's broker is busy forwarding tunnel bytes (push scales, pull does not).
+# ---------------------------------------------------------------------------
+_LSA = {}
+_LSA_LOCK = threading.Lock()
+_LSA_TTL = 60.0
+
+def _on_lsa(message):
+    try:
+        d = json.loads(message) if isinstance(message, str) else message
+        node = d.get("node")
+        if not node:
+            return
+        edges = []
+        paths = d.get("edgePaths") or []
+        nums = d.get("edgesNum") or []
+        for k in range(min(len(paths), len(nums))):
+            srtt, cost, conns = (nums[k] + [0, 0, 0])[:3]
+            edges.append({"from": node, "to": paths[k],
+                          "rtt": round(srtt, 1), "cost": round(cost, 1), "conns": int(conns)})
+        with _LSA_LOCK:
+            _LSA[node] = {"node": node, "region": d.get("region"), "role": d.get("role"),
+                          "edges": edges, "_ts": time.time()}
+    except Exception:
+        pass
+
+def pushed_route_view():
+    now = time.time()
+    with _LSA_LOCK:
+        for n in [x for x, v in _LSA.items() if now - v.get("_ts", 0) > _LSA_TTL]:
+            _LSA.pop(n, None)
+        nodes, edges = [], []
+        for v in _LSA.values():
+            nodes.append({"node": v["node"], "region": v["region"], "role": v["role"]})
+            edges.extend(v["edges"])
+        return {"nodes": nodes, "edges": edges, "routes": [], "observer": None, "pushed": True} if nodes else None
+
+def start_tunnel_stream(host, port, key):
+    def run():
+        while True:
+            try:
+                c = clientlib(host, port, key)
+                if not c.connect():
+                    time.sleep(5); continue
+                c.get_dataplane("cresco_msg_type='stunnel_trace'", _on_trace).connect()
+                c.get_dataplane("cresco_msg_type='route_lsa'", _on_lsa).connect()
+                print(f"[streams] subscribed to pushed stunnel_trace + route_lsa on {host}", file=sys.stderr)
+                while True:
+                    time.sleep(30)
+            except Exception as e:
+                print(f"[streams] error: {e}; reconnecting", file=sys.stderr)
+                time.sleep(5)
+    th = threading.Thread(target=run, daemon=True)
+    th.start()
+
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
@@ -567,6 +682,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Access-Control-Allow-Origin", "*")
+        # never let a browser serve a stale dashboard (was causing "dashboard is broken" after JS fixes)
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")
         self.end_headers()
         self.wfile.write(body)
 
@@ -596,6 +714,7 @@ def main():
 
     POLLER = MeshPoller(args.host, args.port, args.key, args.interval)
     POLLER.start()
+    start_tunnel_stream(args.host, args.port, args.key)   # PUSH subscription to stunnel traces
 
     srv = ThreadingHTTPServer(("0.0.0.0", args.serve_port), Handler)
     print(f"Cresco dashboard: http://0.0.0.0:{args.serve_port}  "

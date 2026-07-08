@@ -61,11 +61,15 @@
 <div class="wrap"><div id="banner"></div><div id="view"></div></div>
 <script>
 const W=760,H=520,CX=W/2,CY=H/2,REFRESH=5000;
-const TABS=['Overview','Globals','Routing','Nodes','Links','Metrics'];
-let TAB='Overview', SNAP=null;
+const TABS=['Overview','Globals','Tunnels','Routing','Nodes','Links','Metrics'];
+let TAB='Overview', SNAP=null, CURLINKS={};
+// bandwidth colour scale (Mb/s): grey=idle, green=low, amber=busy, red=hot
+const bwColor=m=>(m==null||m<0.05)?'#334155':(m<10?'#10b981':(m<100?'#22d3ee':(m<500?'#f59e0b':'#ef4444')));
+const fmtM=m=>m>=1000?(m/1000).toFixed(2)+'G':m>=1?m.toFixed(0)+'M':m>=0.05?(m*1000).toFixed(0)+'k':'';
 const shortN=s=>(s||'').replace(/^global-r(\d+)_gc\d+$/,'G$1').replace('global-region_global-controller','GLOBAL')
   .replace('_edge-controller','~').replace('edge-region','R').replace(/~\w*?(\d+[a-z]?)$/,'').replace('global-region','GLOBAL')||s;
 const rttColor=r=>(r==null||r<0)?'#64748b':(r<25?'#10b981':(r<55?'#f59e0b':'#ef4444'));
+const norm=s=>(s||'').replace(/-/g,'_');   // canonical node key (matches server): hyphens -> underscores
 const svgEl=(t,a={})=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const x in a)e.setAttribute(x,a[x]);return e;};
 const h=(html)=>{const d=document.createElement('div');d.innerHTML=html;return d;};
 function tile(l,v,s,color){return `<div class="tile"><div class="l">${l}</div><div class="v"${color?` style="color:${color}"`:''}>${v}</div><div class="s">${s||''}</div></div>`;}
@@ -100,11 +104,17 @@ function graphSVG(net){
   //     so draw them explicitly from each agent to its region controller).
   agents.forEach(n=>{const reg=regByName[n.region];if(!reg)return;const p1=pos[n.node],p2=pos[reg.node];if(!p1||!p2)return;
     svg.appendChild(svgEl('line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:'#22d3ee','stroke-width':1,'stroke-opacity':0.3}));});
-  // (2) measured mesh edges (region<->region peer, region->global uplink, global<->global)
-  edges.forEach(e=>{const p1=pos[e.a],p2=pos[e.b];if(!p1||!p2)return;const col=rttColor(e.rtt),mx=(p1[0]+p2[0])/2,my=(p1[1]+p2[1])/2;
-    svg.appendChild(svgEl('line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:col,'stroke-width':Math.min(5,1+(e.conns||1)*1.2),'stroke-opacity':big?0.4:0.75,'stroke-dasharray':isPeer(e)?'6 4':'0'}));
-    if(!big){svg.appendChild(svgEl('rect',{x:mx-26,y:my-9,width:52,height:16,rx:4,fill:'#0f172a','fill-opacity':0.82}));
-      const t=svgEl('text',{x:mx,y:my+3,'text-anchor':'middle','font-size':10,fill:col,'font-weight':600});t.textContent=`${e.rtt}ms${(e.conns||1)>1?' ×'+e.conns:''}`;svg.appendChild(t);}});
+  // (2) measured mesh edges — coloured/sized by BANDWIDTH (throughput) when there is traffic, else RTT.
+  //     A busy link is thick + hot-coloured + labelled with Mb/s; connector count shown as ×N.
+  edges.forEach(e=>{const p1=pos[e.a],p2=pos[e.b];if(!p1||!p2)return;const mx=(p1[0]+p2[0])/2,my=(p1[1]+p2[1])/2;
+    const lk=CURLINKS[[norm(e.a),norm(e.b)].sort().join('|')]||{};
+    const bw=Math.max(lk.tx_mbps||0,lk.rx_mbps||0),active=bw>0.05;
+    const col=active?bwColor(bw):rttColor(e.rtt);
+    const w=active?Math.min(10,2+Math.log10(bw+1)*3):Math.min(5,1+(e.conns||1)*1.2);
+    svg.appendChild(svgEl('line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:col,'stroke-width':w,'stroke-opacity':active?0.95:(big?0.4:0.7),'stroke-dasharray':isPeer(e)?'6 4':'0'}));
+    if(!big||active){const lbl=active?fmtM(bw)+'b/s'+((e.conns||1)>1?' ×'+e.conns:''):`${e.rtt}ms${(e.conns||1)>1?' ×'+e.conns:''}`;
+      svg.appendChild(svgEl('rect',{x:mx-30,y:my-9,width:60,height:16,rx:4,fill:'#0f172a','fill-opacity':0.85}));
+      const t=svgEl('text',{x:mx,y:my+3,'text-anchor':'middle','font-size':10,fill:col,'font-weight':700});t.textContent=lbl;svg.appendChild(t);}});
   const draw=(n)=>{const p=pos[n.node];if(!p)return;const g=n.role==='global',ag=n.role==='agent';
     const r=g?(big?16:24):(ag?5:(big?9:18)),fill=g?'#6366f1':(ag?'#22d3ee':'#0ea5e9');
     svg.appendChild(svgEl('circle',{cx:p[0],cy:p[1],r:r,fill:fill,stroke:'#fff','stroke-opacity':g?0.6:0.3,'stroke-width':g?2:1}));
@@ -112,10 +122,13 @@ function graphSVG(net){
   agents.forEach(draw);regions.forEach(draw);globals.forEach(draw);   // globals drawn last = on top
   return {svg,edges,isPeer};
 }
-const legendHTML=`<div class="legend"><span class="lg"><span class="swatch" style="background:var(--green)"></span>&lt;25ms</span>
-  <span class="lg"><span class="swatch" style="background:var(--amber)"></span>25–55ms</span>
-  <span class="lg"><span class="swatch" style="background:var(--red)"></span>&gt;55ms</span>
-  <span class="muted">— solid=uplink · – –region↔region (peer/inferred) · thickness=connectors</span></div>`;
+const legendHTML=`<div class="legend">
+  <span class="lg"><span class="swatch" style="background:#334155"></span>idle</span>
+  <span class="lg"><span class="swatch" style="background:#10b981"></span>&lt;10M</span>
+  <span class="lg"><span class="swatch" style="background:#22d3ee"></span>&lt;100M</span>
+  <span class="lg"><span class="swatch" style="background:#f59e0b"></span>&lt;500M</span>
+  <span class="lg"><span class="swatch" style="background:#ef4444"></span>&gt;500M b/s</span>
+  <span class="muted">— active links coloured + sized by BANDWIDTH (idle=RTT) · ×N=connectors · dashed=region↔region</span></div>`;
 
 // ---- TAB RENDERERS ----
 function vOverview(s){
@@ -234,7 +247,41 @@ function vGlobals(s){
   if(!gnodes.length)grid.appendChild(h('<div class="card"><p class="muted">No globals learned yet.</p></div>'));
   v.appendChild(grid);return v;
 }
-const RENDER={Overview:vOverview,Globals:vGlobals,Routing:vRouting,Nodes:vNodes,Links:vLinks,Metrics:vMetrics};
+function fmtbps(b){b=+b||0;if(b>=1e9)return (b/1e9).toFixed(2)+' Gb/s';if(b>=1e6)return (b/1e6).toFixed(1)+' Mb/s';if(b>=1e3)return (b/1e3).toFixed(0)+' kb/s';return b.toFixed(0)+' b/s';}
+function vTunnels(s){
+  const v=document.createElement('div');const tuns=s.tunnels||[];const net=s.network||{nodes:[],edges:[],routes:[]};
+  const tot=tuns.reduce((a,t)=>a+(+t.bits_per_second||0),0);
+  v.innerHTML=`<div class="tiles">
+    ${tile('Active stunnels',tuns.length,'traced end-to-end','#22d3ee')}
+    ${tile('Total throughput',fmtbps(tot),'across all tunnels','#34d399')}
+    ${tile('Traced hops',tuns.reduce((a,t)=>a+((t.hops||'').split(',').filter(Boolean).length),0),'broker hops observed','#a78bfa')}
+    ${tile('Push stream',s.tunnels!=null?'live':'—','subscribed (not polled)','#818cf8')}</div>`;
+  if(!tuns.length){v.appendChild(h('<div class="card"><p class="muted">No active stunnel tunnels. Create one and drive traffic — its per-hop path + throughput will stream here.</p></div>'));return v;}
+  tuns.forEach(t=>{
+    const hops=(t.hops||'').split(',').filter(Boolean);
+    const card=document.createElement('div');card.className='card';
+    let hb=hops.map((hnode,i)=>`<span class="chip" style="background:#0e7490;color:#cffafe;font-weight:700">${shortN(hnode)}</span>${i<hops.length-1?'<span style="color:#22d3ee;margin:0 2px">→</span>':''}`).join('');
+    card.innerHTML=`<div class="nodehdr"><div><div style="font-weight:700;color:#67e8f9">stunnel ${t.stunnel_id}</div>
+        <div class="muted" style="font-size:11px">${shortN((t.src_region||'?')+'_'+(t.src_agent||''))} → ${shortN((t.dst_region||'?')+'_'+(t.dst_agent||''))} · dir=${t.direction||'?'}</div></div>
+        <span class="badge" style="background:#065f46;color:#a7f3d0">${fmtbps(t.bits_per_second)}</span></div>
+      <div class="kv"><span class="k">Broker path (traced hops)</span></div>
+      <div style="padding:6px 0;line-height:2.1">${hb||'<span class="muted">no hops yet</span>'}</div>
+      <div class="kv"><span class="k">Total bytes</span><span>${(+t.total_bytes||0).toLocaleString()}</span></div>
+      <div class="kv"><span class="k">Hops crossed</span><span>${hops.length} broker(s)</span></div>`;
+    v.appendChild(card);
+    // per-link speed along THIS tunnel's path (from measured netlink metrics)
+    const lm={};(s.links||[]).forEach(l=>{lm[[l.a_norm,l.b_norm].sort().join('|')]=l;lm[[norm(l.a),norm(l.b)].sort().join('|')]=l;});
+    if(hops.length>1){
+      const lc=document.createElement('div');lc.className='card';
+      let tt=`<h2 style="font-size:14px">Per-link speed along stunnel ${t.stunnel_id}</h2><div style="overflow-x:auto"><table><thead><tr><th>From</th><th>To</th><th class="n">RTT</th><th class="n">tx Mb/s</th><th class="n">rx Mb/s</th><th class="n">Conns</th></tr></thead><tbody>`;
+      for(let i=0;i<hops.length-1;i++){const a=norm(hops[i]),b=norm(hops[i+1]);const l=lm[[a,b].sort().join('|')]||{};
+        tt+=`<tr><td>${shortN(hops[i])}</td><td>${shortN(hops[i+1])}</td><td class="n" style="color:${rttColor(l.rtt_ms)}">${(l.rtt_ms||0).toFixed(1)}</td><td class="n">${(l.tx_mbps||0).toFixed(1)}</td><td class="n">${(l.rx_mbps||0).toFixed(1)}</td><td class="n">${l.conns||'—'}</td></tr>`;}
+      lc.innerHTML=tt+'</tbody></table></div>';v.appendChild(lc);
+    }
+  });
+  return v;
+}
+const RENDER={Overview:vOverview,Globals:vGlobals,Tunnels:vTunnels,Routing:vRouting,Nodes:vNodes,Links:vLinks,Metrics:vMetrics};
 
 function paint(){
   // tabs
@@ -242,6 +289,15 @@ function paint(){
   TABS.forEach(t=>{const b=document.createElement('button');b.className='tab'+(t===TAB?' active':'');b.textContent=t;
     b.onclick=()=>{TAB=t;paint();};tb.appendChild(b);});
   const s=SNAP;const ok=s&&s.ok;const age=s&&s.ts?(Date.now()/1000-s.ts):999;const stale=age>30;
+  // per-link throughput map (keyed by sorted normalized node pair) for the bandwidth-coloured graph
+  CURLINKS={};(s&&s.links||[]).forEach(l=>{const k=[l.a_norm||norm(l.a),l.b_norm||norm(l.b)].sort().join('|');CURLINKS[k]=Object.assign({},l);});
+  // OVERLAY stunnel bandwidth onto the links of its TRACED path. stunnel bytes ride ActiveMQ (global.event),
+  // invisible to Cresco's per-link netlink metric — so we attribute each tunnel's live throughput to every
+  // hop link on its broker path. This is the real per-link bandwidth of the tunnel across the mesh.
+  (s&&s.tunnels||[]).forEach(t=>{const hops=(t.hops||'').split(',').filter(Boolean);const mbps=(+t.bits_per_second||0)/1e6;if(mbps<=0)return;
+    for(let i=0;i<hops.length-1;i++){const k=[norm(hops[i]),norm(hops[i+1])].sort().join('|');
+      const cur=CURLINKS[k]||{a:hops[i],b:hops[i+1],a_norm:norm(hops[i]),b_norm:norm(hops[i+1]),rtt_ms:0};
+      cur.tx_mbps=Math.max(cur.tx_mbps||0,mbps);cur.rx_mbps=Math.max(cur.rx_mbps||0,mbps);cur.tunnel=t.stunnel_id;CURLINKS[k]=cur;}});
   document.getElementById('hostline').textContent=s?`${s.host}:${s.port}`:'';
   document.getElementById('statusdot').style.background=ok&&!stale?'#10b981':(ok?'#f59e0b':'#ef4444');
   document.getElementById('statustext').textContent=(ok&&!stale?'Live':stale?'Stale':'Degraded')+(age<900?` · ${age.toFixed(0)}s ago`:'');
