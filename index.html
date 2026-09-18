@@ -63,7 +63,7 @@
 const W=760,H=520,CX=W/2,CY=H/2,REFRESH=5000;
 const BASE_TABS=['Overview','Globals','Tunnels','Routing','Nodes','Links','Metrics'];
 // the Storage tab exists only while the mesh reports a GFS deployment (snapshot.storage != null)
-const tabsFor=s=>(s&&s.storage)?BASE_TABS.concat(['Storage']):BASE_TABS;
+const tabsFor=s=>(s&&s.storage)?BASE_TABS.concat(['Storage','Transfers']):BASE_TABS;
 let TAB='Overview', SNAP=null, CURLINKS={}, STORAGE_BY_AGENT={};
 const fmtB=b=>{b=+b||0;if(b>=1e12)return (b/1e12).toFixed(2)+' TB';if(b>=1e9)return (b/1e9).toFixed(1)+' GB';if(b>=1e6)return (b/1e6).toFixed(1)+' MB';if(b>=1e3)return (b/1e3).toFixed(0)+' kB';return b.toFixed(0)+' B';};
 const stBadge=st=>`<span class="badge ${(st==='UP'||st==='DURABLE')?'b-good':(st==='LOST')?'b-bad':'b-warn'}">${st||'—'}</span>`;
@@ -112,8 +112,12 @@ function graphSVG(net){
   const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`});
   // (1) agent -> region parent SPOKES = the hierarchy (RouteView agent edges point at a _parent pseudo-node,
   //     so draw them explicitly from each agent to its region controller).
-  agents.forEach(n=>{const reg=regByName[n.region];if(!reg)return;const p1=pos[n.node],p2=pos[reg.node];if(!p1||!p2)return;
-    svg.appendChild(svgEl('line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:'#22d3ee','stroke-width':1,'stroke-opacity':0.3}));});
+  agents.forEach(n=>{const reg=regByName[n.region]||globals[0];if(!reg)return;const p1=pos[n.node],p2=pos[reg.node];if(!p1||!p2)return;
+    // GFS data-plane traffic of this agent (fragments + granted streams) rides its uplink: colour/size the spoke by it
+    const a=STORAGE_BY_AGENT[norm(n.node)];const mb=a?(a.tx_mbps+a.rx_mbps+a.fetch_mbps):0;const mbit=mb*8,active=mbit>0.05;
+    svg.appendChild(svgEl('line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:active?bwColor(mbit):'#22d3ee','stroke-width':active?Math.min(10,2+Math.log10(mbit+1)*3):1,'stroke-opacity':active?0.95:0.3}));
+    if(active){const mx=(p1[0]+p2[0])/2,my=(p1[1]+p2[1])/2;svg.appendChild(svgEl('rect',{x:mx-30,y:my-9,width:60,height:16,rx:4,fill:'#0f172a','fill-opacity':0.85}));
+      const t=svgEl('text',{x:mx,y:my+3,'text-anchor':'middle','font-size':10,fill:bwColor(mbit),'font-weight':700});t.textContent=mb.toFixed(mb<10?1:0)+' MB/s';svg.appendChild(t);}});
   // (2) measured mesh edges — coloured/sized by BANDWIDTH (throughput) when there is traffic, else RTT.
   //     A busy link is thick + hot-coloured + labelled with Mb/s; connector count shown as ×N.
   edges.forEach(e=>{const p1=pos[e.a],p2=pos[e.b];if(!p1||!p2)return;const mx=(p1[0]+p2[0])/2,my=(p1[1]+p2[1])/2;
@@ -154,7 +158,7 @@ function vOverview(s){
     ${tile('Worst RTT',(sm.worst_rtt_ms||0).toFixed(0)+'ms',shortN((sm.worst_link||'').split(' ')[0]),'#f87171')}
     ${s.storage?tile('Storage',((s.storage.stats||{}).nodes_up||0)+' / '+((s.storage.stats||{}).nodes||0),fmtB((s.storage.stats||{}).used_bytes)+' of '+fmtB((s.storage.stats||{}).pledged_bytes)+' · '+(s.storage.at_risk_total||0)+' at risk',(s.storage.at_risk_total||0)>0||((s.storage.stats||{}).nodes_lost||0)>0?'#fbbf24':'#34d399'):''}</div>`;
   const c=document.createElement('div');c.className='card';
-  c.innerHTML=`<h2>Live topology</h2><p class="hint">colour=RTT · thickness=connectors · dashed=region↔region${s.storage?' · ring=GFS stores on that agent (green ok · amber suspect/full · red LOST)':''}</p>`;
+  c.innerHTML=`<h2>Live topology</h2><p class="hint">colour=RTT · thickness=connectors · dashed=region↔region${s.storage?' · ring=GFS stores on that agent (green ok · amber suspect/full · red LOST) · spoke=GFS data-plane MB/s on that agent\'s uplink':''}</p>`;
   const g=graphSVG(net);if(net.nodes.length)c.appendChild(g.svg);else c.appendChild(h('<p class="muted" style="text-align:center;padding:24px">learning topology…</p>'));
   c.appendChild(h(legendHTML));v.appendChild(c);
   return v;
@@ -349,7 +353,43 @@ function vStorage(s){
   nc.innerHTML=nt+'</tbody></table></div>';v.appendChild(nc);
   return v;
 }
-const RENDER={Overview:vOverview,Globals:vGlobals,Tunnels:vTunnels,Routing:vRouting,Nodes:vNodes,Links:vLinks,Metrics:vMetrics,Storage:vStorage};
+function xferSVG(hist){
+  const W2=760,H2=90,P=6;const svg=svgEl('svg',{viewBox:`0 0 ${W2} ${H2}`,style:'height:90px'});
+  const pts=(hist||[]).filter(r=>r.length>5);
+  if(pts.length<2){const t=svgEl('text',{x:W2/2,y:H2/2+4,'text-anchor':'middle','font-size':11,fill:'#64748b'});t.textContent='collecting history…';svg.appendChild(t);return svg;}
+  const t0=pts[0][0],t1=pts[pts.length-1][0]||t0+1,max=Math.max(1,...pts.map(r=>r[5]));const x=t=>P+(t-t0)/Math.max(1,(t1-t0))*(W2-2*P);
+  const poly=pts.map(r=>`${x(r[0]).toFixed(1)},${(H2-P-(r[5]/max)*(H2-2*P)).toFixed(1)}`).join(' ');
+  svg.appendChild(svgEl('polyline',{points:`${x(t0).toFixed(1)},${H2-P} ${poly} ${x(t1).toFixed(1)},${H2-P}`,fill:'rgba(34,211,238,.15)',stroke:'none'}));
+  svg.appendChild(svgEl('polyline',{points:poly,fill:'none',stroke:'#22d3ee','stroke-width':2}));
+  const t=svgEl('text',{x:W2-P,y:12,'text-anchor':'end','font-size':10,fill:'#94a3b8'});t.textContent=`peak ${max.toFixed(0)} MB/s · now ${pts[pts.length-1][5].toFixed(1)} MB/s`;svg.appendChild(t);
+  return svg;
+}
+function vTransfers(s){
+  const st=s.storage||{},tr=st.transfers||{},ba=st.by_agent||{};const v=document.createElement('div');
+  const tot=(tr.tx_mbps_total||0)+(tr.fetch_mbps_total||0);
+  v.appendChild(h(`<div class="tiles">
+    ${tile('Fragments out',(tr.tx_mbps_total||0).toFixed(1)+' MB/s','erasure-coded pushes + repairs + restores served',tot>0.05?'#22d3ee':'')}
+    ${tile('Fragments in',(tr.rx_mbps_total||0).toFixed(1)+' MB/s','landing on blind stores',(tr.rx_mbps_total||0)>0.05?'#22d3ee':'')}
+    ${tile('Granted fetches',(tr.fetch_mbps_total||0).toFixed(1)+' MB/s','origin-enforced file streams to clients',(tr.fetch_mbps_total||0)>0.05?'#34d399':'')}
+    ${tile('Busiest agent',shortN(tr.busiest_agent||'—'),(tr.busiest_mbps||0).toFixed(1)+' MB/s','#a78bfa')}
+    ${tile('Frames',(tr.tx_frames_total||0).toLocaleString(),'fragment frames sent · '+fmtB(tr.tx_bytes_total)+' total')}
+    ${tile('Served to clients',fmtB(tr.fetch_bytes_total),'granted bytes, cumulative')}</div>`));
+  const hc=document.createElement('div');hc.className='card';
+  hc.innerHTML=`<h2>GFS data plane · federation throughput</h2><p class="hint">fragment + fetch MB/s over the retained history (rates from consecutive ${st.source==='push'?'beacons':'polls'}; the same bytes show on Cresco's per-link tx via dp_bytes)</p>`;
+  hc.appendChild(xferSVG(st.history));v.appendChild(hc);
+  const ac=document.createElement('div');ac.className='card';
+  const rows=Object.entries(ba).sort((a,b)=>(b[1].tx_mbps+b[1].rx_mbps+b[1].fetch_mbps)-(a[1].tx_mbps+a[1].rx_mbps+a[1].fetch_mbps));
+  let at=`<h2>Per agent · ${rows.length}</h2><p class="hint">every store on an agent shares that agent's uplink to its controller</p><div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th class="n">Stores up</th><th class="n">Out MB/s</th><th class="n">In MB/s</th><th class="n">Fetch MB/s</th><th>Load</th><th class="n">Frames out</th><th class="n">Frames in</th></tr></thead><tbody>`;
+  const maxA=Math.max(1,...rows.map(r=>r[1].tx_mbps+r[1].rx_mbps+r[1].fetch_mbps));
+  rows.forEach(([k,a])=>{const m=a.tx_mbps+a.rx_mbps+a.fetch_mbps;at+=`<tr><td>${shortN(k)}</td><td class="n" style="color:${a.lost>0?'#f87171':'inherit'}">${a.up} / ${a.nodes}</td><td class="n">${a.tx_mbps.toFixed(1)}</td><td class="n">${a.rx_mbps.toFixed(1)}</td><td class="n">${a.fetch_mbps.toFixed(1)}</td><td><div class="bar" style="min-width:90px"><i style="width:${Math.max(1,m/maxA*100)}%;background:${bwColor(m*8)}"></i></div></td><td class="n">${a.tx_frames.toLocaleString()}</td><td class="n">${a.rx_frames.toLocaleString()}</td></tr>`;});
+  ac.innerHTML=at+'</tbody></table></div>';v.appendChild(ac);
+  const nc=document.createElement('div');nc.className='card';
+  let nt=`<h2>Busiest stores</h2><div style="overflow-x:auto"><table><thead><tr><th>Node</th><th>Site</th><th>Agent</th><th class="n">Out MB/s</th><th class="n">In MB/s</th><th class="n">Fetch MB/s</th></tr></thead><tbody>`;
+  (tr.top_nodes||[]).filter(n=>n.tx_mbps+n.rx_mbps+n.fetch_mbps>0.01).forEach(n=>{nt+=`<tr><td title="${n.id}">${n.plugin||shortId(n.id)}</td><td>${n.site||''}</td><td>${shortN((n.region||'')+'_'+(n.agent||''))}</td><td class="n">${n.tx_mbps.toFixed(1)}</td><td class="n">${n.rx_mbps.toFixed(1)}</td><td class="n">${n.fetch_mbps.toFixed(1)}</td></tr>`;});
+  nc.innerHTML=nt+'</tbody></table></div>'+((tr.top_nodes||[]).some(n=>n.tx_mbps+n.rx_mbps+n.fetch_mbps>0.01)?'':'<p class="muted">Idle — no fragment or fetch traffic in the last sample.</p>');v.appendChild(nc);
+  return v;
+}
+const RENDER={Overview:vOverview,Globals:vGlobals,Tunnels:vTunnels,Routing:vRouting,Nodes:vNodes,Links:vLinks,Metrics:vMetrics,Storage:vStorage,Transfers:vTransfers};
 
 function paint(){
   // tabs (Storage appears only while GFS is deployed)

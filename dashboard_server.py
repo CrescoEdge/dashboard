@@ -274,13 +274,19 @@ def normalize_storage(summary, source, gfs_sources, index_addr, ts):
             "failed_probes": int(to_float(n.get("failed_probes"))),
             "last_seen_s": round(max(0.0, (now_ms - last) / 1000), 1) if last else None,
             "availability": round(to_float(n.get("availability")), 3), "score_bytes": to_float(n.get("score_bytes")),
+            # cumulative transfer counters carried by the heartbeat; rates are derived from consecutive samples
+            "tx_bytes": to_float(n.get("tx_bytes")), "rx_bytes": to_float(n.get("rx_bytes")), "fetch_bytes": to_float(n.get("fetch_bytes")),
+            "tx_frames": int(to_float(n.get("tx_frames"))), "rx_frames": int(to_float(n.get("rx_frames"))),
+            "tx_mbps": 0.0, "rx_mbps": 0.0, "fetch_mbps": 0.0,
         }
         nodes.append(rec)
         # per Cresco agent (for the topology overlay): key matches the graph's node ids (region_agent, normalized)
         if n.get("region") and n.get("agent"):
             k = norm(f"{n['region']}_{n['agent']}")
-            a = by_agent.setdefault(k, {"nodes": 0, "up": 0, "lost": 0, "suspect": 0, "pledge": 0.0, "used": 0.0, "fill_pct": 0.0})
+            a = by_agent.setdefault(k, {"nodes": 0, "up": 0, "lost": 0, "suspect": 0, "pledge": 0.0, "used": 0.0, "fill_pct": 0.0,
+                                        "tx_mbps": 0.0, "rx_mbps": 0.0, "fetch_mbps": 0.0, "tx_frames": 0, "rx_frames": 0})
             a["nodes"] += 1
+            a["tx_frames"] += rec["tx_frames"]; a["rx_frames"] += rec["rx_frames"]
             st = rec["state"]
             a["up"] += st == "UP"; a["lost"] += st == "LOST"; a["suspect"] += st == "SUSPECT"
             a["pledge"] += pledge; a["used"] += used
@@ -376,8 +382,12 @@ class MeshPoller:
         self._storage = None          # last polled, normalized model (or an error record)
         self._storage_poll_ts = 0.0
         self.storage_interval = storage_interval
-        self._shist = deque(maxlen=history)   # [ts, used_bytes, nodes_up, nodes_total, at_risk_total]
+        self._shist = deque(maxlen=history)   # [ts, used_bytes, nodes_up, nodes_total, at_risk_total, tx_mbps_total]
         self._shist_last_ts = 0.0
+        # transfer rates: previous counters per node at the previous sample ts, and the rates derived from the last two samples
+        self._xfer_ts = 0.0
+        self._xfer_prev = {}
+        self._xfer_rates = {}
         self.configured_edges, self.configured_roles = discover_configured_edges()
         self._lock = threading.Lock()
         self._snapshot = {
@@ -405,6 +415,7 @@ class MeshPoller:
         if storage is not None:
             storage = dict(storage)
             storage["age_s"] = round(time.time() - to_float(storage.get("ts"), time.time()), 1)
+            self._apply_transfer_rates(storage)
             self._record_storage_history(storage)
             storage["history"] = list(self._shist)
         snap["storage"] = storage
@@ -456,6 +467,49 @@ class MeshPoller:
         for lk in snap["links"]:
             self._history[lk["id"]].append([ts, lk["rtt_ms"], lk["cost"]])
 
+    def _apply_transfer_rates(self, storage):
+        """MB/s per node / agent / federation from the cumulative counters of two consecutive samples (beacon or poll).
+        Rates are recomputed once per new sample ts and re-used until the next one, so they never flicker to zero."""
+        ts = to_float(storage.get("ts"))
+        nodes = storage.get("nodes") or []
+        with self._lock:
+            if ts and nodes and ts != self._xfer_ts:
+                dt = ts - self._xfer_ts if self._xfer_ts else 0.0
+                fresh = {}
+                for n in nodes:
+                    cur = (n["tx_bytes"], n["rx_bytes"], n["fetch_bytes"])
+                    prev = self._xfer_prev.get(n["id"])
+                    if prev is not None and dt >= 1.0:
+                        fresh[n["id"]] = tuple(round(max(0.0, c - q) / dt / 1e6, 3) for c, q in zip(cur, prev))
+                    self._xfer_prev[n["id"]] = cur
+                if dt >= 1.0:
+                    self._xfer_rates = fresh
+                self._xfer_ts = ts
+            rates = dict(self._xfer_rates)
+        by_agent = storage.get("by_agent") or {}
+        for a in by_agent.values():
+            a["tx_mbps"] = a["rx_mbps"] = a["fetch_mbps"] = 0.0
+        tot = [0.0, 0.0, 0.0]
+        for n in nodes:
+            r = rates.get(n["id"]) or (0.0, 0.0, 0.0)
+            n["tx_mbps"], n["rx_mbps"], n["fetch_mbps"] = r
+            for i in range(3):
+                tot[i] += r[i]
+            if n.get("region") and n.get("agent"):
+                a = by_agent.get(norm(f"{n['region']}_{n['agent']}"))
+                if a:
+                    a["tx_mbps"] = round(a["tx_mbps"] + r[0], 3); a["rx_mbps"] = round(a["rx_mbps"] + r[1], 3); a["fetch_mbps"] = round(a["fetch_mbps"] + r[2], 3)
+        busiest = max(by_agent.items(), key=lambda kv: kv[1]["tx_mbps"] + kv[1]["rx_mbps"], default=(None, None))
+        storage["transfers"] = {
+            "tx_mbps_total": round(tot[0], 2), "rx_mbps_total": round(tot[1], 2), "fetch_mbps_total": round(tot[2], 2),
+            "tx_frames_total": sum(n["tx_frames"] for n in nodes), "rx_frames_total": sum(n["rx_frames"] for n in nodes),
+            "tx_bytes_total": sum(n["tx_bytes"] for n in nodes), "fetch_bytes_total": sum(n["fetch_bytes"] for n in nodes),
+            "busiest_agent": busiest[0], "busiest_mbps": round((busiest[1]["tx_mbps"] + busiest[1]["rx_mbps"]), 2) if busiest[1] else 0.0,
+            "top_nodes": sorted([{"id": n["id"], "plugin": n.get("plugin"), "site": n["site"], "region": n["region"], "agent": n["agent"],
+                                  "tx_mbps": n["tx_mbps"], "rx_mbps": n["rx_mbps"], "fetch_mbps": n["fetch_mbps"]} for n in nodes],
+                                key=lambda x: -(x["tx_mbps"] + x["rx_mbps"] + x["fetch_mbps"]))[:20],
+        }
+
     def _record_storage_history(self, storage):
         ts = to_float(storage.get("ts"))
         st = storage.get("stats") or {}
@@ -465,8 +519,10 @@ class MeshPoller:
             if ts <= self._shist_last_ts:
                 return
             self._shist_last_ts = ts
+            tr = storage.get("transfers") or {}
             self._shist.append([round(ts, 1), to_float(st.get("used_bytes")), int(to_float(st.get("nodes_up"))),
-                                int(to_float(st.get("nodes"))), int(to_float(storage.get("at_risk_total")))])
+                                int(to_float(st.get("nodes"))), int(to_float(storage.get("at_risk_total"))),
+                                round(to_float(tr.get("tx_mbps_total")) + to_float(tr.get("fetch_mbps_total")), 2)])
 
     # ---- storage (GFS) ----
     def _pick_index(self, gfs_sources):
@@ -911,8 +967,14 @@ def start_tunnel_stream(host, port, key):
                 c.get_dataplane("cresco_msg_type='route_lsa'", _on_lsa).connect()
                 c.get_dataplane("cresco_msg_type='gfs_state'", _on_gfs_state).connect()
                 print(f"[streams] subscribed to pushed stunnel_trace + route_lsa + gfs_state on {host}", file=sys.stderr)
-                while True:
-                    time.sleep(30)
+                while c.connected():          # a dead socket (global restart) -> resubscribe on a fresh client
+                    time.sleep(5)
+                print("[streams] control socket lost; resubscribing", file=sys.stderr)
+                try:
+                    c.close()
+                except Exception:
+                    pass
+                time.sleep(3)
             except Exception as e:
                 print(f"[streams] error: {e}; reconnecting", file=sys.stderr)
                 time.sleep(5)

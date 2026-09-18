@@ -31,11 +31,34 @@ Open `http://<host>:8900/`. `pycrescolib` is found in the sibling checkout (`../
 - **Routing** — the learned RouteView graph, inferred/peer links, and per-peer path decisions.
 - **Nodes / Metrics** — per-node health.
 - **Links** — federation links with RTT / jitter / cost / quality.
+- **Transfers** — with Storage: live GFS data-plane MB/s (fragments out/in, granted fetches) for the federation, per agent and per store, with a throughput history; the Overview colours each agent's uplink spoke by it.
 - **Storage** — appears only while a Cresco Global File System (`io.cresco.gfs`) is deployed: federation
   capacity (used / pledged), storage-node liveness (UP / SUSPECT / LOST), object health (DURABLE /
   DEGRADED / LOST), repairs in flight, the per-site reciprocity ledger, the objects that are not DURABLE
   and the full storage-node roster. The Overview also gets a Storage tile and rings every agent that
   hosts storage nodes (green ok · amber suspect or >90% full · red hosts a LOST store).
+
+## Recording a demo
+
+`record_dashboard.py` drives a headless Chromium with video capture and clicks around: it rotates through the
+tabs the current phase cares about (with a look at the others), scrolls the long tabs and paints a caption. The
+workload driver updates a phase file with a caption line or `{"caption", "say", "tabs"}` JSON (`DONE` ends the
+recording). Narration: each phase's `say` text is rendered with macOS `say` (`--voice`, `--rate`), placed at the
+second that phase appeared on screen and muxed with the video into an H.264/AAC `.mp4` by the bundled
+`imageio-ffmpeg` (`--no-audio` for a silent cut; `video/timeline.json` has the timing). A clip is trimmed if its
+phase ends first, so the driver should hold each phase at least as long as its own narration takes to speak —
+`gfs_dashboard_demo.py` does that with `settle()`.
+The GFS harness has a one-command demo that uses it:
+
+```bash
+run/gfs/run_dashboard_demo.sh        # fabric → deploy → seed → dashboard → record → performance/storage/tunnel/reliability phases
+# -> code/dashboard/video/dashboard.mp4, numbers in run/gfs/results/scaleDEMO_demo_*.json
+```
+
+The Transfers tab shows GFS data-plane throughput (fragment pushes, repairs, restores, granted fetches) per
+federation / agent / store, derived from cumulative counters that every store carries in its heartbeat; the same
+bytes are stamped `dp_bytes` on the dataplane frames, so they also appear on Cresco's own per-link `tx_mbps`
+(Links tab, topology).
 
 ## Data sources (Cresco actions)
 
