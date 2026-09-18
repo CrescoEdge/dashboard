@@ -61,8 +61,17 @@
 <div class="wrap"><div id="banner"></div><div id="view"></div></div>
 <script>
 const W=760,H=520,CX=W/2,CY=H/2,REFRESH=5000;
-const TABS=['Overview','Globals','Tunnels','Routing','Nodes','Links','Metrics'];
-let TAB='Overview', SNAP=null, CURLINKS={};
+const BASE_TABS=['Overview','Globals','Tunnels','Routing','Nodes','Links','Metrics'];
+// the Storage tab exists only while the mesh reports a GFS deployment (snapshot.storage != null)
+const tabsFor=s=>(s&&s.storage)?BASE_TABS.concat(['Storage']):BASE_TABS;
+let TAB='Overview', SNAP=null, CURLINKS={}, STORAGE_BY_AGENT={};
+const fmtB=b=>{b=+b||0;if(b>=1e12)return (b/1e12).toFixed(2)+' TB';if(b>=1e9)return (b/1e9).toFixed(1)+' GB';if(b>=1e6)return (b/1e6).toFixed(1)+' MB';if(b>=1e3)return (b/1e3).toFixed(0)+' kB';return b.toFixed(0)+' B';};
+const stBadge=st=>`<span class="badge ${(st==='UP'||st==='DURABLE')?'b-good':(st==='LOST')?'b-bad':'b-warn'}">${st||'—'}</span>`;
+const fillBar=p=>`<div class="bar" style="min-width:64px"><i style="width:${Math.max(1,Math.min(100,+p||0))}%;background:${p>90?'var(--red)':p>70?'var(--amber)':'var(--green)'}"></i></div>`;
+const shortId=id=>{id=String(id||'');return id.length>20?id.slice(0,10)+'…'+id.slice(-6):id;};
+const ago=sec=>sec==null?'—':sec<90?sec.toFixed(0)+'s':sec<5400?(sec/60).toFixed(0)+'m':(sec/3600).toFixed(1)+'h';
+// storage colour of an agent ring on the topology: red = hosts a LOST store, amber = >90% full, green = healthy stores
+const storeRing=k=>{const a=STORAGE_BY_AGENT[k];if(!a)return null;return a.lost>0?'#ef4444':a.suspect>0?'#f59e0b':a.fill_pct>90?'#f59e0b':'#10b981';};
 // bandwidth colour scale (Mb/s): grey=idle, green=low, amber=busy, red=hot
 const bwColor=m=>(m==null||m<0.05)?'#334155':(m<10?'#10b981':(m<100?'#22d3ee':(m<500?'#f59e0b':'#ef4444')));
 const fmtM=m=>m>=1000?(m/1000).toFixed(2)+'G':m>=1?m.toFixed(0)+'M':m>=0.05?(m*1000).toFixed(0)+'k':'';
@@ -94,10 +103,11 @@ function graphSVG(net){
   else globals.forEach((n,i)=>{const a=-Math.PI/2+i*2*Math.PI/globals.length;pos[n.node]=[CX+RG*Math.cos(a),CY+RG*Math.sin(a)];});
   const regAng={};
   regions.forEach((n,i)=>{const a=-Math.PI/2+i*2*Math.PI/Math.max(1,regions.length);regAng[n.region]=a;pos[n.node]=[CX+R1*Math.cos(a),CY+R1*Math.sin(a)];});
-  const sib={};
-  agents.forEach(n=>{let a=regAng[n.region];const has=a!=null;
-    if(!has)a=-Math.PI/2+(Object.keys(sib).length)*2*Math.PI/Math.max(1,agents.length);
-    const i=(sib[n.region]=(sib[n.region]||0)+1)-1;const off=has?i*0.06:0;   // stack siblings, else spread
+  const sib={};let loose=0;const nLoose=agents.filter(n=>regAng[n.region]==null).length;
+  agents.slice().sort((a,b)=>a.node.localeCompare(b.node)).forEach(n=>{let a=regAng[n.region];const has=a!=null;
+    // agents attached straight to a global (no regional controller) get their own slot around the ring
+    if(!has)a=-Math.PI/2+(loose++)*2*Math.PI/Math.max(1,nLoose);
+    const i=(sib[n.region]=(sib[n.region]||0)+1)-1;const off=has?i*0.06:0;   // stack siblings under a region
     pos[n.node]=[CX+R2*Math.cos(a+off),CY+R2*Math.sin(a+off)];});
   const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`});
   // (1) agent -> region parent SPOKES = the hierarchy (RouteView agent edges point at a _parent pseudo-node,
@@ -117,6 +127,9 @@ function graphSVG(net){
       const t=svgEl('text',{x:mx,y:my+3,'text-anchor':'middle','font-size':10,fill:col,'font-weight':700});t.textContent=lbl;svg.appendChild(t);}});
   const draw=(n)=>{const p=pos[n.node];if(!p)return;const g=n.role==='global',ag=n.role==='agent';
     const r=g?(big?16:24):(ag?5:(big?9:18)),fill=g?'#6366f1':(ag?'#22d3ee':'#0ea5e9');
+    const ring=storeRing(norm(n.node));   // GFS overlay: ring an agent that hosts storage nodes
+    if(ring){svg.appendChild(svgEl('circle',{cx:p[0],cy:p[1],r:r+3,fill:'none',stroke:ring,'stroke-width':2,'stroke-opacity':0.95}));
+      const a=STORAGE_BY_AGENT[norm(n.node)];const t=svgEl('title');t.textContent=`${n.node}: ${a.up}/${a.nodes} stores UP, ${a.lost} LOST, ${a.fill_pct.toFixed(0)}% full`;svg.appendChild(t);}
     svg.appendChild(svgEl('circle',{cx:p[0],cy:p[1],r:r,fill:fill,stroke:'#fff','stroke-opacity':g?0.6:0.3,'stroke-width':g?2:1}));
     if(g||(!ag&&!big)){const t=svgEl('text',{x:p[0],y:p[1]+3,'text-anchor':'middle','font-size':g?12:10,fill:'#fff','font-weight':700});t.textContent=shortN(n.node);svg.appendChild(t);}};
   agents.forEach(draw);regions.forEach(draw);globals.forEach(draw);   // globals drawn last = on top
@@ -138,9 +151,10 @@ function vOverview(s){
     ${tile('Regions',(sm.regions||1)-1,'in mesh')}${tile('Nodes',sm.nodes||0,'controllers')}
     ${tile('Agents',sm.agents||0,'reachable '+(sm.reachable_agents||0))}${tile('Plugins',sm.plugins||0,'loaded')}
     ${tile('Links',sm.links_measured||sm.links||0,(sm.peer_links||0)+' region↔region','')}
-    ${tile('Worst RTT',(sm.worst_rtt_ms||0).toFixed(0)+'ms',shortN((sm.worst_link||'').split(' ')[0]),'#f87171')}</div>`;
+    ${tile('Worst RTT',(sm.worst_rtt_ms||0).toFixed(0)+'ms',shortN((sm.worst_link||'').split(' ')[0]),'#f87171')}
+    ${s.storage?tile('Storage',((s.storage.stats||{}).nodes_up||0)+' / '+((s.storage.stats||{}).nodes||0),fmtB((s.storage.stats||{}).used_bytes)+' of '+fmtB((s.storage.stats||{}).pledged_bytes)+' · '+(s.storage.at_risk_total||0)+' at risk',(s.storage.at_risk_total||0)>0||((s.storage.stats||{}).nodes_lost||0)>0?'#fbbf24':'#34d399'):''}</div>`;
   const c=document.createElement('div');c.className='card';
-  c.innerHTML=`<h2>Live topology</h2><p class="hint">colour=RTT · thickness=connectors · dashed=region↔region</p>`;
+  c.innerHTML=`<h2>Live topology</h2><p class="hint">colour=RTT · thickness=connectors · dashed=region↔region${s.storage?' · ring=GFS stores on that agent (green ok · amber suspect/full · red LOST)':''}</p>`;
   const g=graphSVG(net);if(net.nodes.length)c.appendChild(g.svg);else c.appendChild(h('<p class="muted" style="text-align:center;padding:24px">learning topology…</p>'));
   c.appendChild(h(legendHTML));v.appendChild(c);
   return v;
@@ -281,14 +295,70 @@ function vTunnels(s){
   });
   return v;
 }
-const RENDER={Overview:vOverview,Globals:vGlobals,Tunnels:vTunnels,Routing:vRouting,Nodes:vNodes,Links:vLinks,Metrics:vMetrics};
+function sparkSVG(hist){
+  // nodes UP (green) and objects at risk (amber) over the retained history
+  const W2=760,H2=70,P=6;const svg=svgEl('svg',{viewBox:`0 0 ${W2} ${H2}`,style:'height:70px'});
+  if(!hist||hist.length<2){const t=svgEl('text',{x:W2/2,y:H2/2+4,'text-anchor':'middle','font-size':11,fill:'#64748b'});t.textContent='collecting history…';svg.appendChild(t);return svg;}
+  const t0=hist[0][0],t1=hist[hist.length-1][0]||t0+1;const x=t=>P+(t-t0)/Math.max(1,(t1-t0))*(W2-2*P);
+  const line=(idx,max,col)=>{const pts=hist.map(r=>`${x(r[0]).toFixed(1)},${(H2-P-(r[idx]/Math.max(1,max))*(H2-2*P)).toFixed(1)}`).join(' ');
+    svg.appendChild(svgEl('polyline',{points:pts,fill:'none',stroke:col,'stroke-width':2}));};
+  line(2,Math.max(...hist.map(r=>r[3])),'#10b981');line(4,Math.max(1,...hist.map(r=>r[4])),'#f59e0b');
+  const l=hist[hist.length-1];const t=svgEl('text',{x:W2-P,y:12,'text-anchor':'end','font-size':10,fill:'#94a3b8'});t.textContent=`UP ${l[2]}/${l[3]} · at risk ${l[4]} · ${fmtB(l[1])} used`;svg.appendChild(t);
+  return svg;
+}
+function vStorage(s){
+  const st=s.storage||{},x=st.stats||{};const v=document.createElement('div');
+  if(st.error)v.appendChild(h(`<div class="err">Storage: ${st.error}</div>`));
+  const risk=(x.objects_degraded||0)+(x.objects_lost||0);
+  v.appendChild(h(`<div class="tiles">
+    ${tile('Storage nodes',(x.nodes_up||0)+' / '+(x.nodes||0),(x.nodes_suspect||0)+' suspect · '+(x.nodes_lost||0)+' lost',(x.nodes_lost||0)>0?'#f87171':(x.nodes_suspect||0)>0?'#fbbf24':'#34d399')}
+    ${tile('Sites',x.sites||0,(x.members||0)+' federation members')}
+    ${tile('Capacity',(st.fill_pct||0).toFixed(1)+'%',fmtB(x.used_bytes)+' of '+fmtB(x.pledged_bytes)+' pledged',(st.fill_pct||0)>90?'#f87171':'#38bdf8')}
+    ${tile('Objects',(x.objects_durable||0)+' / '+(x.objects||0),'durable / total · '+(x.fragments||0)+' fragments','#a78bfa')}
+    ${tile('At risk',risk,(x.objects_degraded||0)+' degraded · '+(x.objects_lost||0)+' lost',risk>0?'#fbbf24':'#34d399')}
+    ${tile('Repairs',x.repairs_in_flight||0,'in flight · '+(x.frags_marked_bad||0)+' frags ever BAD','#22d3ee')}
+    ${tile('Catalog',(+x.files||0).toLocaleString(),(x.datasets||0)+' datasets · '+(x.projects||0)+' projects')}
+    ${tile('Index',`seq ${x.seq||0}`,(st.primary?'primary':'replica')+' · '+((st.replicas_seen||[]).length||(st.replicas||[]).length)+' replica(s) · heap '+(+x.heap_used_mb||0).toFixed(0)+' MB','#818cf8')}</div>`));
+  const inst=st.instances||{};
+  const hc=document.createElement('div');hc.className='card';
+  hc.innerHTML=`<h2>Global File System · ${st.index||'index not found'}</h2>
+    <p class="hint">${st.source==='push'?'PUSHED gfs_state beacon (every '+((st.beacon_period_ms||0)/1000)+' s)':'polled storagesummary'} · ${ago(st.age_s)} old · ${st.instances_total||0} gfs instances in the metric inventory (${Object.keys(inst).map(k=>k+' '+inst[k]).join(', ')||'none'})${st.nodes_omitted?' · roster omitted from the beacon (large federation) — shown from the last poll':''}</p>
+    <div class="kv"><span class="k">Capacity used across the federation</span><span>${fmtB(x.used_bytes)} / ${fmtB(x.pledged_bytes)}</span></div>${fillBar(st.fill_pct||0)}
+    <div class="kv" style="margin-top:8px"><span class="k">Replicas (pulling the journal)</span><span>${(st.replicas_seen||[]).map(r=>`${r.id} <span class="muted">pulled ${ago(r.last_pull_s)} ago · ${r.behind} behind</span>`).join(', ')||(st.replicas||[]).join(', ')||'—'}</span></div>`;
+  hc.appendChild(sparkSVG(st.history));v.appendChild(hc);
+  // at-risk objects
+  const ar=st.at_risk||[];const rc=document.createElement('div');rc.className='card';
+  let rt=`<h2>Objects not DURABLE · ${st.at_risk_total||0}</h2><p class="hint">LOST = a stripe has more than m fragments unavailable (fails closed) · DEGRADED = repairable from k surviving fragments; the repair planner re-places on fresh eligible sites</p>`;
+  if(!ar.length)rt+='<p class="muted">Every object is DURABLE.</p>';
+  else{rt+=`<div style="overflow-x:auto"><table><thead><tr><th>Object</th><th>Dataset / file</th><th>Site</th><th class="n">Size</th><th class="n">k+m</th><th class="n">Holders up</th><th>State</th><th>Reason</th><th class="n">Updated</th></tr></thead><tbody>`;
+    ar.forEach(o=>{rt+=`<tr><td title="${o.object_id}">${shortId(o.object_id)}</td><td>${o.dataset_id||''} / ${o.rel||''}</td><td>${o.site||''}</td><td class="n">${fmtB(o.size)}</td><td class="n">${o.k}+${o.m}</td><td class="n" style="color:${o.holders_up<o.k?'#f87171':o.holders_up<o.holders?'#fbbf24':'#34d399'}">${o.holders_up} / ${o.holders}</td><td>${stBadge(o.derived_state)}</td><td class="muted" style="max-width:320px">${o.reason||''}</td><td class="n">${ago(o.updated_s)}</td></tr>`;});
+    rt+='</tbody></table></div>';if((st.at_risk_total||0)>ar.length)rt+=`<p class="hint">showing ${ar.length} of ${st.at_risk_total}</p>`;}
+  rc.innerHTML=rt;v.appendChild(rc);
+  // sites (ledger + roster)
+  const sites=st.sites||[];const sc=document.createElement('div');sc.className='card';
+  let stt=`<h2>Sites · ${sites.length}</h2><p class="hint">reciprocity: entitlement = Σ node score × federation ratio · consumed = fragment bytes stored elsewhere on the site's behalf · headroom = what it may still promote</p>
+    <div style="overflow-x:auto"><table><thead><tr><th>Site</th><th class="n">Nodes up</th><th>Classes</th><th class="n">Pledged</th><th class="n">Used</th><th>Fill</th><th class="n">Entitlement</th><th class="n">Consumed</th><th class="n">Headroom</th><th class="n">Stores for others</th></tr></thead><tbody>`;
+  sites.forEach(r=>{stt+=`<tr><td>${r.site}</td><td class="n" style="color:${r.lost>0?'#f87171':r.up<r.nodes?'#fbbf24':'inherit'}">${r.up} / ${r.nodes}</td><td class="muted">${(r.classes||[]).join(', ')}</td><td class="n">${fmtB(r.pledged)}</td><td class="n">${fmtB(r.used)}</td><td>${fillBar(r.fill_pct)}</td><td class="n">${fmtB(r.entitlement)}</td><td class="n">${fmtB(r.consumed)}</td><td class="n" style="color:${r.headroom<0?'#f87171':'inherit'}">${fmtB(r.headroom)}</td><td class="n">${fmtB(r.stored_for_others)}</td></tr>`;});
+  sc.innerHTML=stt+'</tbody></table></div>';v.appendChild(sc);
+  // storage nodes
+  const ns=(st.nodes||[]).slice().sort((a,b)=>({LOST:0,SUSPECT:1}[a.state]??2)-({LOST:0,SUSPECT:1}[b.state]??2)||b.fill_pct-a.fill_pct||String(a.id).localeCompare(b.id));
+  const MAXN=300;const nc=document.createElement('div');nc.className='card';
+  let nt=`<h2>Storage nodes · ${ns.length}${ns.length>MAXN?' (showing '+MAXN+')':''}</h2><p class="hint">state from the index (heartbeat → SUSPECT → LOST after the per-profile grace) · availability and score feed placement and the reciprocity ledger</p>
+    <div style="overflow-x:auto"><table><thead><tr><th>Node</th><th>Site</th><th>Agent</th><th>Class</th><th>State</th><th class="n">Since</th><th class="n">Pledge</th><th class="n">Used</th><th>Fill</th><th class="n">Frags</th><th class="n">Probe Mb/s</th><th class="n">Seen</th><th class="n">Avail</th><th class="n">Score</th></tr></thead><tbody>`;
+  ns.slice(0,MAXN).forEach(n=>{nt+=`<tr><td title="${n.id}">${n.plugin||shortId(n.id)}</td><td>${n.site||''}</td><td>${shortN((n.region||'')+'_'+(n.agent||''))}</td><td class="muted">${n.node_class||''}</td><td>${stBadge(n.state)}</td><td class="n">${ago(n.state_since_s)}</td><td class="n">${fmtB(n.pledge)}</td><td class="n">${fmtB(n.used)}</td><td>${fillBar(n.fill_pct)}</td><td class="n">${n.frag_count}</td><td class="n">${n.probe_mbps||'—'}</td><td class="n">${ago(n.last_seen_s)}</td><td class="n">${(n.availability*100).toFixed(0)}%</td><td class="n">${fmtB(n.score_bytes)}</td></tr>`;});
+  nc.innerHTML=nt+'</tbody></table></div>';v.appendChild(nc);
+  return v;
+}
+const RENDER={Overview:vOverview,Globals:vGlobals,Tunnels:vTunnels,Routing:vRouting,Nodes:vNodes,Links:vLinks,Metrics:vMetrics,Storage:vStorage};
 
 function paint(){
-  // tabs
+  // tabs (Storage appears only while GFS is deployed)
+  const TABS=tabsFor(SNAP);if(!TABS.includes(TAB))TAB='Overview';
   const tb=document.getElementById('tabs');tb.innerHTML='';
   TABS.forEach(t=>{const b=document.createElement('button');b.className='tab'+(t===TAB?' active':'');b.textContent=t;
     b.onclick=()=>{TAB=t;paint();};tb.appendChild(b);});
   const s=SNAP;const ok=s&&s.ok;const age=s&&s.ts?(Date.now()/1000-s.ts):999;const stale=age>30;
+  STORAGE_BY_AGENT=(s&&s.storage&&s.storage.by_agent)||{};
   // per-link throughput map (keyed by sorted normalized node pair) for the bandwidth-coloured graph
   CURLINKS={};(s&&s.links||[]).forEach(l=>{const k=[l.a_norm||norm(l.a),l.b_norm||norm(l.b)].sort().join('|');CURLINKS[k]=Object.assign({},l);});
   // OVERLAY stunnel bandwidth onto the links of its TRACED path. stunnel bytes ride ActiveMQ (global.event),

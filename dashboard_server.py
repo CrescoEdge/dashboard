@@ -17,12 +17,22 @@ Design notes:
     The global agent list is fetched too (fast); edge agent lists are intentionally
     skipped and their agent/plugin info is derived from the metric inventory instead.
 
+Storage (Cresco Global File System, io.cresco.gfs) is OPTIONAL and self-detecting: the gfs plugin registers a
+`gfs` metric group, so the metric inventory the poller already fetches says whether GFS is deployed and where
+every instance is (`metrics_by_source` keys are `<region>_<agent>:<pluginId>`). When an index instance is
+present the poller asks it for `storagesummary` (one RPC: stats, roster, reciprocity ledger, at-risk objects;
+the index is the federation's aggregator, so there is no fan-out) and subscribes to the `gfs_state` beacon the
+index primary pushes on the dataplane -- push wins when fresh, exactly like route_lsa vs getnetworkstate.
+Without GFS, `snapshot["storage"]` is null and the UI shows no Storage tab.
+
 Usage:
-  ./venv/bin/python dashboard/dashboard_server.py [--host 172.20.20.3] [--port 8282]
+  ./venv/bin/python dashboard/dashboard_server.py [--host localhost] [--port 8282]
                                                   [--serve-port 8900] [--interval 8]
+                                                  [--gfs-index region:agent:plugin] [--storage-interval 10]
 """
 import argparse
 import json
+import os
 import re
 import sys
 import threading
@@ -31,11 +41,15 @@ from collections import defaultdict, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-sys.path.insert(0, "/scratch/llm_crawl/cresco/code/pycrescolib")
-from pycrescolib.clientlib import clientlib  # noqa: E402
-
 HERE = Path(__file__).resolve().parent
 CLAB_DIR = HERE.parent / "containerlab"
+
+# pycrescolib: $PYCRESCOLIB_PATH, else the sibling checkout (code/pycrescolib), else an installed package
+_PYC = os.environ.get("PYCRESCOLIB_PATH") or str(HERE.parent / "pycrescolib")
+if (Path(_PYC) / "pycrescolib").exists():
+    sys.path.insert(0, _PYC)
+from pycrescolib.clientlib import clientlib  # noqa: E402
+from pycrescolib.utils import decompress_param  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # configured-topology discovery (containerlab)
@@ -126,6 +140,7 @@ def flatten_metrics(node_inv):
         "links": {},           # peer_key -> {rtt_ms, jitter_ms, tx_mbps, rx_mbps, sendlat_ms, backlog, cost}
         "counters": {},        # controller/regional/global/cep scalar counters
         "plugins": [],         # plugin bundle group names (repo/wsapi/...)
+        "gfs": {},             # gfs.* gauges summed over this node's gfs instances (detail per instance: collect_gfs_sources)
     }
     mbs = node_inv.get("metrics_by_source", {}) or {}
     for src, groups in mbs.items():
@@ -136,7 +151,7 @@ def flatten_metrics(node_inv):
             if not isinstance(metrics, list):
                 continue
             # record which plugin bundles are present (non-controller, non-sysinfo groups)
-            if gname in ("repo", "wsapi", "stunnel", "executor", "filerepo"):
+            if gname in ("repo", "wsapi", "stunnel", "executor", "filerepo", "gfs"):
                 if gname not in out["plugins"]:
                     out["plugins"].append(gname)
             for m in metrics:
@@ -157,6 +172,8 @@ def flatten_metrics(node_inv):
                     out["disk"][name] = to_float(val)
                 elif gname in ("controller", "regional", "global", "cep"):
                     out["counters"][name] = to_float(val)
+                elif gname == "gfs":
+                    out["gfs"][name] = out["gfs"].get(name, 0.0) + to_float(val)
     # derived composite link cost (per CONTAINERLAB_SIMULATION.md cost model)
     for peer, lk in out["links"].items():
         rtt = lk.get("rtt_ms", 0.0)
@@ -184,6 +201,36 @@ def collect_nodes(inv, acc, region_names):
         collect_nodes(child, acc, region_names)
 
 
+def collect_gfs_sources(inv, acc, region_names):
+    """Every gfs plugin instance in the inventory (root + children) with its exact address and gauges.
+
+    Since the plugin registers gauges per role, `gfs.index.*` marks an index instance and `gfs.store.*` a
+    storage instance. acc: list of {node, region, agent, plugin, addr, roles, gauges}.
+    """
+    node = inv.get("node")
+    if node:
+        region, agent = split_node(node, region_names)
+        for src, groups in (inv.get("metrics_by_source") or {}).items():
+            if not isinstance(groups, dict) or not isinstance(groups.get("gfs"), list):
+                continue
+            pid = src.split(":", 1)[1] if ":" in src else src
+            gauges = {}
+            for m in groups["gfs"]:
+                if m.get("name") is not None:
+                    gauges[m["name"]] = to_float(m.get("value", m.get("count")))
+            roles = []
+            if any(k.startswith("gfs.index.") for k in gauges):
+                roles.append("index")
+            if any(k.startswith("gfs.store.") for k in gauges):
+                roles.append("storage")
+            if not roles:
+                roles.append("gfs")   # an older plugin build registers the same gauges for every role
+            acc.append({"node": node, "region": region, "agent": agent, "plugin": pid,
+                        "addr": f"{region}:{agent}:{pid}", "roles": roles, "gauges": gauges})
+    for _, child in (inv.get("children") or {}).items():
+        collect_gfs_sources(child, acc, region_names)
+
+
 def split_node(node_str, region_names):
     """Split 'region_agent' where region may itself contain '_' after hyphen->'_' subst.
 
@@ -204,16 +251,133 @@ def split_node(node_str, region_names):
 
 
 # ---------------------------------------------------------------------------
+# storage (GFS) model
+# ---------------------------------------------------------------------------
+
+def normalize_storage(summary, source, gfs_sources, index_addr, ts):
+    """Turn a storagesummary / gfs_state payload into the UI model. Pure; no RPC."""
+    stats = summary.get("stats") or {}
+    now_ms = int(time.time() * 1000)
+    nodes = []
+    by_agent = {}
+    for n in summary.get("nodes") or []:
+        pledge = to_float(n.get("pledge")); used = to_float(n.get("used"))
+        fill = round(used / pledge * 100, 2) if pledge > 0 else 0.0
+        last = to_float(n.get("last_seen"))
+        rec = {
+            "id": n.get("id"), "site": n.get("site"), "region": n.get("region"), "agent": n.get("agent"),
+            "plugin": n.get("plugin"), "roles": n.get("roles"), "node_class": n.get("node_class"),
+            "state_code": n.get("state_code"), "state": n.get("state") or "?",
+            "state_since_s": round(max(0.0, (now_ms - to_float(n.get("state_since"))) / 1000), 0) if n.get("state_since") else None,
+            "pledge": pledge, "used": used, "free": to_float(n.get("free")), "fill_pct": fill,
+            "frag_count": int(to_float(n.get("frag_count"))), "probe_mbps": round(to_float(n.get("probe_mbps")), 1),
+            "failed_probes": int(to_float(n.get("failed_probes"))),
+            "last_seen_s": round(max(0.0, (now_ms - last) / 1000), 1) if last else None,
+            "availability": round(to_float(n.get("availability")), 3), "score_bytes": to_float(n.get("score_bytes")),
+        }
+        nodes.append(rec)
+        # per Cresco agent (for the topology overlay): key matches the graph's node ids (region_agent, normalized)
+        if n.get("region") and n.get("agent"):
+            k = norm(f"{n['region']}_{n['agent']}")
+            a = by_agent.setdefault(k, {"nodes": 0, "up": 0, "lost": 0, "suspect": 0, "pledge": 0.0, "used": 0.0, "fill_pct": 0.0})
+            a["nodes"] += 1
+            st = rec["state"]
+            a["up"] += st == "UP"; a["lost"] += st == "LOST"; a["suspect"] += st == "SUSPECT"
+            a["pledge"] += pledge; a["used"] += used
+            a["fill_pct"] = max(a["fill_pct"], fill)
+    # sites: ledger rows joined with the roster
+    sites = []
+    per_site = {}
+    for n in nodes:
+        ps = per_site.setdefault(n["site"], {"nodes": 0, "up": 0, "lost": 0, "classes": set()})
+        ps["nodes"] += 1; ps["up"] += n["state"] == "UP"; ps["lost"] += n["state"] == "LOST"
+        if n.get("node_class"):
+            ps["classes"].add(n["node_class"])
+    for site, l in (summary.get("ledger") or {}).items():
+        ps = per_site.get(site, {"nodes": 0, "up": 0, "lost": 0, "classes": set()})
+        pledged = to_float(l.get("pledged_bytes")); used = to_float(l.get("used_bytes"))
+        sites.append({
+            "site": site, "nodes": int(to_float(l.get("storage_nodes"))) or ps["nodes"],
+            "up": int(to_float(l.get("storage_nodes_up"))) if l.get("storage_nodes_up") is not None else ps["up"],
+            "lost": ps["lost"], "classes": sorted(ps["classes"]),
+            "pledged": pledged, "used": used, "fill_pct": round(used / pledged * 100, 2) if pledged > 0 else 0.0,
+            "score": to_float(l.get("score_bytes")), "entitlement": to_float(l.get("entitlement_bytes")),
+            "consumed": to_float(l.get("consumed_bytes")), "stored_for_others": to_float(l.get("stored_for_others_bytes")),
+            "headroom": to_float(l.get("headroom_bytes")),
+        })
+    at_risk = []
+    for o in summary.get("at_risk") or []:
+        upd = to_float(o.get("updated"))
+        at_risk.append({
+            "object_id": o.get("object_id"), "dataset_id": o.get("dataset_id"), "rel": o.get("rel"), "site": o.get("site"),
+            "size": to_float(o.get("size")), "k": int(to_float(o.get("k"))), "m": int(to_float(o.get("m"))),
+            "stripes": int(to_float(o.get("stripes"))), "state": o.get("state"), "derived_state": o.get("derived_state"),
+            "reason": o.get("reason"), "holders": int(to_float(o.get("holders"))), "holders_up": int(to_float(o.get("holders_up"))),
+            "updated_s": round(max(0.0, (now_ms - upd) / 1000), 0) if upd else None,
+        })
+    order = {"LOST": 0, "DEGRADED": 1}
+    at_risk.sort(key=lambda o: (order.get(o["derived_state"], 2), o.get("object_id") or ""))
+    instances = defaultdict(int)
+    for g in gfs_sources or []:
+        for r in g["roles"]:
+            instances[r] += 1
+    pledged = to_float(stats.get("pledged_bytes")); used = to_float(stats.get("used_bytes"))
+    return {
+        "enabled": True, "source": source, "ts": ts, "index": summary.get("index") or index_addr,
+        "primary": bool(summary.get("primary")), "primary_addr": summary.get("primary_addr"),
+        "replicas": summary.get("replicas") or [], "beacon_period_ms": summary.get("beacon_period_ms"),
+        # replicas that actually pull the journal from this primary, with their lag (seq entries behind)
+        "replicas_seen": [{"id": r.get("id"), "last_pull_s": round(to_float(r.get("last_pull_ms_ago")) / 1000, 1), "behind": int(to_float(r.get("behind")))}
+                          for r in (summary.get("replicas_seen") or [])],
+        "nodes_omitted": bool(summary.get("nodes_omitted")),
+        "stats": stats, "fill_pct": round(used / pledged * 100, 2) if pledged > 0 else 0.0,
+        "nodes": nodes, "sites": sorted(sites, key=lambda x: (-x["fill_pct"], x["site"])),
+        "at_risk": at_risk, "at_risk_total": int(to_float(summary.get("at_risk_total"))),
+        "by_agent": by_agent, "instances": dict(instances), "instances_total": len(gfs_sources or []),
+        "error": None,
+    }
+
+
+# PUSHED gfs_state beacon (index primary -> GLOBAL dataplane topic, selector cresco_msg_type='gfs_state').
+_GFS = {"payload": None, "_ts": 0.0}
+_GFS_LOCK = threading.Lock()
+
+def _on_gfs_state(message):
+    try:
+        d = json.loads(message) if isinstance(message, str) else message
+        if not isinstance(d, dict) or "stats" not in d:
+            return
+        with _GFS_LOCK:
+            _GFS["payload"] = d
+            _GFS["_ts"] = time.time()
+    except Exception:
+        pass
+
+def pushed_gfs_state():
+    with _GFS_LOCK:
+        return _GFS["payload"], _GFS["_ts"]
+
+
+# ---------------------------------------------------------------------------
 # poller
 # ---------------------------------------------------------------------------
 
 class MeshPoller:
-    def __init__(self, host, port, key, interval, history=180):
+    def __init__(self, host, port, key, interval, history=180, gfs_index=None, storage_interval=10.0):
         self.host = host
         self.port = port
         self.key = key
         self.interval = interval
         self.history_len = history
+        # storage (GFS): explicit index address wins; else discovered from the inventory each cycle
+        self.gfs_index_override = gfs_index
+        self._gfs_addr = gfs_index
+        self._gfs_sources = []
+        self._storage = None          # last polled, normalized model (or an error record)
+        self._storage_poll_ts = 0.0
+        self.storage_interval = storage_interval
+        self._shist = deque(maxlen=history)   # [ts, used_bytes, nodes_up, nodes_total, at_risk_total]
+        self._shist_last_ts = 0.0
         self.configured_edges, self.configured_roles = discover_configured_edges()
         self._lock = threading.Lock()
         self._snapshot = {
@@ -228,7 +392,29 @@ class MeshPoller:
     def snapshot(self):
         with self._lock:
             snap = dict(self._snapshot)
+            storage = self._storage
+            gfs_sources = list(self._gfs_sources)
+            gfs_addr = self._gfs_addr
         snap["tunnels"] = tunnel_snapshot()   # merged from the PUSHED stunnel_trace stream
+        # storage: the pushed gfs_state beacon wins while fresh (3 beacon periods, min 30 s); else the last poll.
+        pushed, pts = pushed_gfs_state()
+        if pushed is not None:
+            period = to_float(pushed.get("beacon_period_ms"), 10000.0) / 1000.0
+            if time.time() - pts <= max(30.0, 3 * period):
+                storage = normalize_storage(pushed, "push", gfs_sources, pushed.get("index") or gfs_addr, pts)
+        if storage is not None:
+            storage = dict(storage)
+            storage["age_s"] = round(time.time() - to_float(storage.get("ts"), time.time()), 1)
+            self._record_storage_history(storage)
+            storage["history"] = list(self._shist)
+        snap["storage"] = storage
+        snap["gfs_enabled"] = storage is not None
+        # the poll path stays observable even while the pushed beacon is what the UI shows
+        with self._lock:
+            polled = self._storage; pts = self._storage_poll_ts
+        snap["storage_poll"] = {"ts": pts, "age_s": round(time.time() - pts, 1) if pts else None,
+                                "index": (polled or {}).get("index"), "error": (polled or {}).get("error"),
+                                "nodes": len((polled or {}).get("nodes") or [])} if polled is not None else None
         # graph from the PUSHED link-state when the getnetworkstate POLL is empty/starved (push > pull).
         polled = snap.get("network") or {}
         if not (polled.get("nodes")):
@@ -270,6 +456,59 @@ class MeshPoller:
         for lk in snap["links"]:
             self._history[lk["id"]].append([ts, lk["rtt_ms"], lk["cost"]])
 
+    def _record_storage_history(self, storage):
+        ts = to_float(storage.get("ts"))
+        st = storage.get("stats") or {}
+        if not ts or not st:
+            return
+        with self._lock:   # snapshot() runs on HTTP handler threads
+            if ts <= self._shist_last_ts:
+                return
+            self._shist_last_ts = ts
+            self._shist.append([round(ts, 1), to_float(st.get("used_bytes")), int(to_float(st.get("nodes_up"))),
+                                int(to_float(st.get("nodes"))), int(to_float(storage.get("at_risk_total")))])
+
+    # ---- storage (GFS) ----
+    def _pick_index(self, gfs_sources):
+        """The index primary if the inventory shows one, else any index instance, else the last known address."""
+        if self.gfs_index_override:
+            return self.gfs_index_override
+        idx = [g for g in gfs_sources if "index" in g["roles"]]
+        if idx:
+            prim = [g for g in idx if to_float(g["gauges"].get("gfs.index.primary"), 1.0) >= 1.0]
+            return (prim or idx)[0]["addr"]
+        legacy = [g for g in gfs_sources if g["roles"] == ["gfs"] and to_float(g["gauges"].get("gfs.index.nodes")) > 0]
+        if legacy:
+            return legacy[0]["addr"]
+        return self._gfs_addr
+
+    def _poll_storage(self, c, gfs_sources):
+        """One RPC to the index (storagesummary). Returns a normalized model or an error record; None = no GFS."""
+        if not gfs_sources and not self.gfs_index_override:
+            return None
+        addr = self._pick_index(gfs_sources)
+        if not addr:
+            return {"enabled": True, "source": "poll", "ts": time.time(), "index": None, "stats": {}, "nodes": [], "sites": [],
+                    "at_risk": [], "at_risk_total": 0, "by_agent": {}, "instances": {}, "instances_total": len(gfs_sources),
+                    "error": "gfs instances found but no index instance is visible in the metric inventory"}
+        region, agent, plugin = addr.split(":", 2)
+        try:
+            r = c.messaging.global_plugin_msgevent(True, "EXEC", {"action": "storagesummary", "limit": "200"},
+                                                   region, agent, plugin, timeout=30.0)
+        except Exception as e:
+            r = {"status": "err", "status_desc": f"{type(e).__name__}: {e}"}
+        if r and r.get("status") == "10" and r.get("summary"):
+            summary = json.loads(decompress_param(r["summary"]))
+            summary["index"] = r.get("index") or addr
+            self._gfs_addr = addr
+            return normalize_storage(summary, "poll", gfs_sources, addr, time.time())
+        desc = (r or {}).get("status_desc") or "no reply (timeout)"
+        if not r:
+            self._gfs_addr = None if not self.gfs_index_override else self._gfs_addr   # re-discover next cycle
+        return {"enabled": True, "source": "poll", "ts": time.time(), "index": addr, "stats": {}, "nodes": [], "sites": [],
+                "at_risk": [], "at_risk_total": 0, "by_agent": {}, "instances": {}, "instances_total": len(gfs_sources),
+                "error": f"storagesummary on {addr}: {desc}"}
+
     def _poll_once(self):
         c = clientlib(self.host, self.port, self.key)
         if not c.connect():
@@ -289,6 +528,16 @@ class MeshPoller:
 
             nodes_acc = {}
             collect_nodes(inv, nodes_acc, region_names)
+            gfs_sources = []
+            collect_gfs_sources(inv, gfs_sources, region_names)
+            # storage: throttled to storage_interval; kept as the fallback when the pushed beacon goes stale
+            if time.time() - self._storage_poll_ts >= self.storage_interval:
+                storage = self._poll_storage(c, gfs_sources)
+                with self._lock:
+                    self._storage = storage
+                    self._storage_poll_ts = time.time()
+            with self._lock:
+                self._gfs_sources = gfs_sources
 
             # DYNAMIC routing state: the global's learned mesh graph (edges w/ rtt/cost/conns) +
             # path choices, pushed into its RouteView via the dataplane. This is what makes the
@@ -390,6 +639,7 @@ class MeshPoller:
                     "net_recv_kb": round(sysm.get("net.bytes.recv", 0.0) / 1e3, 1),
                 },
                 "counters": {k: round(v, 3) for k, v in m["counters"].items()},
+                "gfs": {k: round(v, 3) for k, v in m["gfs"].items()},
                 "raw_links": m["links"],
             }
             nodes.append(node)
@@ -659,7 +909,8 @@ def start_tunnel_stream(host, port, key):
                     time.sleep(5); continue
                 c.get_dataplane("cresco_msg_type='stunnel_trace'", _on_trace).connect()
                 c.get_dataplane("cresco_msg_type='route_lsa'", _on_lsa).connect()
-                print(f"[streams] subscribed to pushed stunnel_trace + route_lsa on {host}", file=sys.stderr)
+                c.get_dataplane("cresco_msg_type='gfs_state'", _on_gfs_state).connect()
+                print(f"[streams] subscribed to pushed stunnel_trace + route_lsa + gfs_state on {host}", file=sys.stderr)
                 while True:
                     time.sleep(30)
             except Exception as e:
@@ -696,6 +947,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, POLLER.snapshot())
         if self.path.startswith("/api/history"):
             return self._send(200, POLLER.history())
+        if self.path.startswith("/api/storage"):
+            return self._send(200, POLLER.snapshot().get("storage") or {"enabled": False})
         if self.path.startswith("/api/health"):
             snap = POLLER.snapshot()
             return self._send(200, {"ok": snap["ok"], "ts": snap["ts"], "error": snap["error"]})
@@ -705,14 +958,17 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     global POLLER
     ap = argparse.ArgumentParser()
-    ap.add_argument("--host", default="172.20.20.3", help="Cresco global controller host")
+    ap.add_argument("--host", default=os.environ.get("CRESCO_HOST", "localhost"), help="Cresco global controller host")
     ap.add_argument("--port", type=int, default=8282, help="Cresco wss port")
-    ap.add_argument("--key", default="test-service-key-0001")
+    ap.add_argument("--key", default=os.environ.get("CRESCO_SERVICE_KEY", "test-service-key-0001"))
     ap.add_argument("--serve-port", type=int, default=8900, help="dashboard http port")
     ap.add_argument("--interval", type=float, default=8.0, help="poll interval seconds")
+    ap.add_argument("--gfs-index", default=None, help="GFS index address region:agent:plugin (default: discovered from the metric inventory)")
+    ap.add_argument("--storage-interval", type=float, default=10.0, help="seconds between storagesummary polls (the pushed beacon is used whenever fresh)")
     args = ap.parse_args()
 
-    POLLER = MeshPoller(args.host, args.port, args.key, args.interval)
+    POLLER = MeshPoller(args.host, args.port, args.key, args.interval,
+                        gfs_index=args.gfs_index, storage_interval=args.storage_interval)
     POLLER.start()
     start_tunnel_stream(args.host, args.port, args.key)   # PUSH subscription to stunnel traces
 
