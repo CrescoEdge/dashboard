@@ -133,7 +133,7 @@ def main():
         except Exception:
             return -1
 
-    timeline, t0 = [], None
+    timeline, t0, spotlit = [], None, {}
     with sync_playwright() as p:
         b = p.chromium.launch(args=["--no-sandbox"])
         ctx = b.new_context(viewport={"width": w, "height": h},
@@ -174,6 +174,16 @@ def main():
                 pg.locator("#tabs .tab", has_text=tab).first.click()
                 pg.wait_for_timeout(500)
                 pg.evaluate("window.scrollTo({top:0})")
+            # A spotlight teaches where a thing is; teaching it twice is noise. Each panel is
+            # highlighted once, and later visits show the whole tab so the viewer watches it change.
+            panel = ph.get("panel")
+            key = (tab, panel)
+            if panel is not None and key in spotlit:
+                print(f"           (already spotlit in {spotlit[key]} — showing the whole tab)", flush=True)
+                panel = None
+            elif panel is not None:
+                spotlit[key] = ph["id"]
+
             end = time.time() + hold
             focused = None
             while time.time() < end:
@@ -181,7 +191,7 @@ def main():
                 meta = f"{el//60:02d}:{el%60:02d}" + (f" · {tab} view" if tab else "")
                 got = pg.evaluate(FOCUS_JS, {
                     "html": f"<div class=meta>{meta}</div>{ph['caption']}",
-                    "panel": ph.get("panel")})
+                    "panel": panel})
                 focused = focused or got
                 if driver_phase() not in (cur, -1):
                     break
